@@ -1,0 +1,149 @@
+{
+  "scope": "ATEC Task E Tabletop Manipulation",
+  "checked_at_utc": "2026-09-17T21:23:34.596119+00:00",
+  "python_syntax": {
+    "passed": true,
+    "files": 55
+  },
+  "task_core_match_original": {
+    "passed": true,
+    "files": 36
+  },
+  "object_physics_functions_match_original": true,
+  "readme_bash_syntax": {
+    "passed": true,
+    "blocks": 8
+  },
+  "task_e_only_directory_cleanup": true,
+  "wheel_build": {
+    "passed": true,
+    "required_subpackages_present": true,
+    "task_e_object_config_present": true,
+    "not_installed_into_original_environment": true
+  },
+  "act_baseline": {
+    "passed": true,
+    "strict_state_dict_load": true,
+    "synthetic_cpu_inference": true,
+    "action_shape": [
+      1,
+      30,
+      8
+    ],
+    "rgb_backbone": true,
+    "finite_actions": true,
+    "import_from_standalone_root": true
+  },
+  "usd_dependencies": [
+    {
+      "entry": "atec_robot_model/robot/piper/piper.usd",
+      "local_layers": [
+        "atec_robot_model/robot/piper/piper.usd",
+        "atec_robot_model/robot/piper/configuration/piper_base.usd",
+        "atec_robot_model/robot/piper/configuration/piper_physics.usd",
+        "atec_robot_model/robot/piper/configuration/piper_sensor.usd"
+      ],
+      "local_assets": [],
+      "runtime_dependencies": [
+        "OmniPBR.mdl"
+      ]
+    },
+    {
+      "entry": "atec_robot_model/objects/task_e/shop_table/Shop_Table.usd",
+      "local_layers": [
+        "atec_robot_model/objects/task_e/shop_table/Shop_Table.usd"
+      ],
+      "local_assets": [
+        "atec_robot_model/objects/task_e/shop_table/textures/aluminum_feet_basecolor.png",
+        "atec_robot_model/objects/task_e/shop_table/textures/aluminum_feet_normal.png",
+        "atec_robot_model/objects/task_e/shop_table/textures/aluminum_feet_roughness.png",
+        "atec_robot_model/objects/task_e/shop_table/textures/metal_tabletop_basecolor.png",
+        "atec_robot_model/objects/task_e/shop_table/textures/metal_tabletop_metallic.png",
+        "atec_robot_model/objects/task_e/shop_table/textures/metal_tabletop_normal.png",
+        "atec_robot_model/objects/task_e/shop_table/textures/metal_tabletop_roughness.png",
+        "atec_robot_model/objects/task_e/shop_table/textures/steel_orange_basecolor.png",
+        "atec_robot_model/objects/task_e/shop_table/textures/steel_orange_metallic.png",
+        "atec_robot_model/objects/task_e/shop_table/textures/steel_orange_normal.png",
+        "atec_robot_model/objects/task_e/shop_table/textures/steel_orange_roughness.png",
+        "atec_robot_model/objects/task_e/shop_table/textures/vibrationtable_base_basecolor.png"
+      ],
+      "runtime_dependencies": [
+        "OmniPBR.mdl"
+      ]
+    },
+    {
+      "entry": "atec_robot_model/objects/task_e/KLT_Bin/small_KLT.usd",
+      "local_layers": [
+        "atec_robot_model/objects/task_e/KLT_Bin/small_KLT.usd",
+        "atec_robot_model/objects/task_e/KLT_Bin/small_KLT_visual.usd"
+      ],
+      "local_assets": [
+        "atec_robot_model/objects/task_e/KLT_Bin/Materials/Textures/FOF_Map_Labels_D.png",
+        "atec_robot_model/objects/task_e/KLT_Bin/Materials/Textures/FOF_Map_Magenta_Box_D.png",
+        "atec_robot_model/objects/task_e/KLT_Bin/Materials/Textures/FOF_Mesh_Labels_D.png"
+      ],
+      "runtime_dependencies": [
+        "OmniPBR.mdl"
+      ]
+    },
+    {
+      "entry": "atec_robot_model/objects/task_e/pick_objects/004_sugar_box.usd",
+      "local_layers": [
+        "atec_robot_model/objects/task_e/pick_objects/004_sugar_box.usd"
+      ],
+      "local_assets": [
+        "atec_robot_model/objects/task_e/pick_objects/Materials/Textures/004_sugar_box_COLOR.png"
+      ],
+      "runtime_dependencies": [
+        "OmniPBR.mdl"
+      ]
+    },
+    {
+      "entry": "atec_robot_model/objects/task_e/pick_objects/006_mustard_bottle.usd",
+      "local_layers": [
+        "atec_robot_model/objects/task_e/pick_objects/006_mustard_bottle.usd"
+      ],
+      "local_assets": [
+        "atec_robot_model/objects/task_e/pick_objects/Materials/Textures/006_mustard_bottle_COLOR.png"
+      ],
+      "runtime_dependencies": [
+        "OmniPBR.mdl"
+      ]
+    },
+    {
+      "entry": "atec_robot_model/objects/task_e/pick_objects/011_banana.usd",
+      "local_layers": [
+        "atec_robot_model/objects/task_e/pick_objects/011_banana.usd"
+      ],
+      "local_assets": [
+        "atec_robot_model/objects/task_e/pick_objects/Materials/Textures/011_banana_COLOR.png"
+      ],
+      "runtime_dependencies": [
+        "OmniPBR.mdl"
+      ]
+    },
+    {
+      "entry": "atec_robot_model/scene/plane/default_environment.usd",
+      "local_layers": [
+        "atec_robot_model/scene/plane/default_environment.usd"
+      ],
+      "local_assets": [
+        "atec_robot_model/scene/plane/Materials/Textures/WireframeBlur_basecolor.png",
+        "atec_robot_model/scene/plane/Materials/Textures/WireframeBlur_blue.png",
+        "atec_robot_model/scene/plane/Materials/Textures/Wireframe_blue.png"
+      ],
+      "runtime_dependencies": [
+        "OmniPBR.mdl"
+      ]
+    }
+  ],
+  "hdr_light_texture_present": true,
+  "isaac_sim_task_success_test_performed": false,
+  "limitations": [
+    "OmniPBR.mdl is supplied by the Isaac Sim material runtime.",
+    "Synthetic CPU inference does not prove tabletop task completion.",
+    "No training dataset or newly trained checkpoints are bundled.",
+    "Collector success handling and demonstration distribution still require development."
+  ],
+  "asset_contents_match_original": true
+}

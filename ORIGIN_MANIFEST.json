@@ -1,0 +1,761 @@
+{
+  "scope": "ATEC Task E Tabletop Manipulation",
+  "source_root": "/home/ubuntu/ATEC2026_Simulation_Challenge",
+  "description": "Current Task E handoff inventory. Source paths identify the original files; relocated grasp-object assets retain their original bytes. This manifest and SHA256SUMS are excluded from this inventory.",
+  "files": [
+    {
+      "path": ".gitignore",
+      "sha256": "9e8ad67335a5515de0fc5084988160271b5ba18eac3777e3b0b5c5b7058c8e9b",
+      "status": "adapted",
+      "source_path": ".gitignore",
+      "source_sha256": "d9ded933b7f40105f5fb4d9edcfe5d0b7d5ec2caf51f94ccfce63f8ad74fe4e9"
+    },
+    {
+      "path": "HANDOFF_CHANGELOG.md",
+      "sha256": "6cbd64ee00d61dfaf5f1cefc1226e90abbedf81cde19aeb0c30b1ff91a28558c",
+      "status": "new"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "3eb85a256e02b435b1a92e1abc099285107c81c5a6f46eace46e5ba0e16f210a",
+      "status": "unchanged",
+      "source_path": "LICENSE",
+      "source_sha256": "3eb85a256e02b435b1a92e1abc099285107c81c5a6f46eace46e5ba0e16f210a"
+    },
+    {
+      "path": "README.md",
+      "sha256": "b9a13524ea3ed41f260af597cada016f9c26b987514a40deaf69a0d5738bdf69",
+      "status": "new"
+    },
+    {
+      "path": "atec_robot_model/baseline/act/policy.pt",
+      "sha256": "63d9a8352486433d73b6f18c2162296b527039d39c8150d0405464d957ed27bd",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/baseline/act/policy.pt",
+      "source_sha256": "63d9a8352486433d73b6f18c2162296b527039d39c8150d0405464d957ed27bd"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/KLT_Bin/Materials/Textures/FOF_Map_Labels_D.png",
+      "sha256": "7ed4642ab31d970e22c7edf62508347c6fbb14bfdf47487696a6a9a681359f22",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/KLT_Bin/Materials/Textures/FOF_Map_Labels_D.png",
+      "source_sha256": "7ed4642ab31d970e22c7edf62508347c6fbb14bfdf47487696a6a9a681359f22"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/KLT_Bin/Materials/Textures/FOF_Map_Magenta_Box_D.png",
+      "sha256": "191e3e8f6b583dc35232f5079d18b421f97dd09d79b374b03b1b1745dd9d8477",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/KLT_Bin/Materials/Textures/FOF_Map_Magenta_Box_D.png",
+      "source_sha256": "191e3e8f6b583dc35232f5079d18b421f97dd09d79b374b03b1b1745dd9d8477"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/KLT_Bin/Materials/Textures/FOF_Map_Magenta_Box_MS.png",
+      "sha256": "7e4512784255664d8df3d719daea4167b122e4eff00591731516fbb6728dc4c8",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/KLT_Bin/Materials/Textures/FOF_Map_Magenta_Box_MS.png",
+      "source_sha256": "7e4512784255664d8df3d719daea4167b122e4eff00591731516fbb6728dc4c8"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/KLT_Bin/Materials/Textures/FOF_Map_Magenta_Box_N.png",
+      "sha256": "6f2bc27068e09f045279854883c48da30d020f2c756ae3e9b12d061bb37e4cba",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/KLT_Bin/Materials/Textures/FOF_Map_Magenta_Box_N.png",
+      "source_sha256": "6f2bc27068e09f045279854883c48da30d020f2c756ae3e9b12d061bb37e4cba"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/KLT_Bin/Materials/Textures/FOF_Mesh_Labels_D.png",
+      "sha256": "7ed4642ab31d970e22c7edf62508347c6fbb14bfdf47487696a6a9a681359f22",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/KLT_Bin/Materials/Textures/FOF_Mesh_Labels_D.png",
+      "source_sha256": "7ed4642ab31d970e22c7edf62508347c6fbb14bfdf47487696a6a9a681359f22"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/KLT_Bin/small_KLT.usd",
+      "sha256": "f2cd9e27013021bb4e0c1ce60c5705b7f05206c93a4859f9ae2dfa022fdaf83e",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/KLT_Bin/small_KLT.usd",
+      "source_sha256": "f2cd9e27013021bb4e0c1ce60c5705b7f05206c93a4859f9ae2dfa022fdaf83e"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/KLT_Bin/small_KLT_visual.usd",
+      "sha256": "2810154bdae1532dea35603024a0fefd94eaf3909cecc5edbe09b6cb510e3a2b",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/KLT_Bin/small_KLT_visual.usd",
+      "source_sha256": "2810154bdae1532dea35603024a0fefd94eaf3909cecc5edbe09b6cb510e3a2b"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/KLT_Bin/small_KLT_visual_collision.usd",
+      "sha256": "2e6172432c1b5ee2b7ea047229e070ccf1d49b69d01b4796c0445531af392bb9",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/KLT_Bin/small_KLT_visual_collision.usd",
+      "source_sha256": "2e6172432c1b5ee2b7ea047229e070ccf1d49b69d01b4796c0445531af392bb9"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/pick_objects/004_sugar_box.usd",
+      "sha256": "72f50b18df4ee14e00d19e4e5dce1d2478b722f442b30ece337b8e03cb2aed6b",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_b/004_sugar_box.usd",
+      "source_sha256": "72f50b18df4ee14e00d19e4e5dce1d2478b722f442b30ece337b8e03cb2aed6b"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/pick_objects/006_mustard_bottle.usd",
+      "sha256": "3035d39baf5052ea22e14221f65f94f06c8e345be0e060eec8ceb7753676f785",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_b/006_mustard_bottle.usd",
+      "source_sha256": "3035d39baf5052ea22e14221f65f94f06c8e345be0e060eec8ceb7753676f785"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/pick_objects/011_banana.usd",
+      "sha256": "0e6a21f0912babf26a94d8b0adb7114a0a260c12fef410970c2b852bc66def30",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_b/011_banana.usd",
+      "source_sha256": "0e6a21f0912babf26a94d8b0adb7114a0a260c12fef410970c2b852bc66def30"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/pick_objects/Materials/Textures/004_sugar_box_COLOR.png",
+      "sha256": "28b350366d308d139f2259c5c1e4f1b5fa11d16396b36cee77fd476cfa2e1558",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_b/Materials/Textures/004_sugar_box_COLOR.png",
+      "source_sha256": "28b350366d308d139f2259c5c1e4f1b5fa11d16396b36cee77fd476cfa2e1558"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/pick_objects/Materials/Textures/006_mustard_bottle_COLOR.png",
+      "sha256": "f9fac6799af122d8457651ac8a9d3df779547f467920023ae8e30714c8fae582",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_b/Materials/Textures/006_mustard_bottle_COLOR.png",
+      "source_sha256": "f9fac6799af122d8457651ac8a9d3df779547f467920023ae8e30714c8fae582"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/pick_objects/Materials/Textures/011_banana_COLOR.png",
+      "sha256": "841dd1e67d23815cfaac3a14019c4dd8712d956664dab853a4d558353eba3795",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_b/Materials/Textures/011_banana_COLOR.png",
+      "source_sha256": "841dd1e67d23815cfaac3a14019c4dd8712d956664dab853a4d558353eba3795"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/shop_table/.collect.mapping.json",
+      "sha256": "45faf0943df65965f8bcf58d1c51a3dbd9b4da8175f3cd822d0a4f6450897243",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/shop_table/.collect.mapping.json",
+      "source_sha256": "45faf0943df65965f8bcf58d1c51a3dbd9b4da8175f3cd822d0a4f6450897243"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/shop_table/Shop_Table.usd",
+      "sha256": "30818e85cfd27ccab84991e09885e0aefe2a63e478ba6997f4d6d268a107c287",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/shop_table/Shop_Table.usd",
+      "source_sha256": "30818e85cfd27ccab84991e09885e0aefe2a63e478ba6997f4d6d268a107c287"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/shop_table/textures/aluminum_feet_basecolor.png",
+      "sha256": "638dd3aae4d1b8f707ad03c97cd451b58a574a3b25ed10946eea9259bf312bac",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/shop_table/textures/aluminum_feet_basecolor.png",
+      "source_sha256": "638dd3aae4d1b8f707ad03c97cd451b58a574a3b25ed10946eea9259bf312bac"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/shop_table/textures/aluminum_feet_normal.png",
+      "sha256": "a6cbaacc70c32764c7336dacb7a458cc87cdebe7def2a81e3cabfa72947201aa",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/shop_table/textures/aluminum_feet_normal.png",
+      "source_sha256": "a6cbaacc70c32764c7336dacb7a458cc87cdebe7def2a81e3cabfa72947201aa"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/shop_table/textures/aluminum_feet_roughness.png",
+      "sha256": "d0254e72c0ed81612be221db5643b2963cbee645f9ad043752ba9e366d51155f",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/shop_table/textures/aluminum_feet_roughness.png",
+      "source_sha256": "d0254e72c0ed81612be221db5643b2963cbee645f9ad043752ba9e366d51155f"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/shop_table/textures/metal_tabletop_basecolor.png",
+      "sha256": "a37bfaf214fba64dc947b05accbd613f669a655780f4879694213196e0f25721",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/shop_table/textures/metal_tabletop_basecolor.png",
+      "source_sha256": "a37bfaf214fba64dc947b05accbd613f669a655780f4879694213196e0f25721"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/shop_table/textures/metal_tabletop_metallic.png",
+      "sha256": "3ed878b9202f5254d26946a416fa9ad26b2ada6875ad9e86f3ef5ef0fc6a7674",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/shop_table/textures/metal_tabletop_metallic.png",
+      "source_sha256": "3ed878b9202f5254d26946a416fa9ad26b2ada6875ad9e86f3ef5ef0fc6a7674"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/shop_table/textures/metal_tabletop_normal.png",
+      "sha256": "c7601da2dfd5d1b3a20ba818544e73644961e6c398442f147f3657707c3f69c6",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/shop_table/textures/metal_tabletop_normal.png",
+      "source_sha256": "c7601da2dfd5d1b3a20ba818544e73644961e6c398442f147f3657707c3f69c6"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/shop_table/textures/metal_tabletop_roughness.png",
+      "sha256": "8a3c404dcf8b9e6fe174cbf3da49b88703fd0d1434124504e17577bbd244e6d8",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/shop_table/textures/metal_tabletop_roughness.png",
+      "source_sha256": "8a3c404dcf8b9e6fe174cbf3da49b88703fd0d1434124504e17577bbd244e6d8"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/shop_table/textures/steel_orange_basecolor.png",
+      "sha256": "7a6bb5cce8e6eee2920f0a21a790e8a30b9d605dadf681af626c5c496e5c963a",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/shop_table/textures/steel_orange_basecolor.png",
+      "source_sha256": "7a6bb5cce8e6eee2920f0a21a790e8a30b9d605dadf681af626c5c496e5c963a"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/shop_table/textures/steel_orange_metallic.png",
+      "sha256": "96c862aa3b88fa0cc087382aba5607a7b2b886f324314da20f9e36e7fbd0fa0e",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/shop_table/textures/steel_orange_metallic.png",
+      "source_sha256": "96c862aa3b88fa0cc087382aba5607a7b2b886f324314da20f9e36e7fbd0fa0e"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/shop_table/textures/steel_orange_normal.png",
+      "sha256": "594ca198f2e555ee24516442cd48e1c56d3cb224dcd35ce364654610af650cbb",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/shop_table/textures/steel_orange_normal.png",
+      "source_sha256": "594ca198f2e555ee24516442cd48e1c56d3cb224dcd35ce364654610af650cbb"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/shop_table/textures/steel_orange_roughness.png",
+      "sha256": "286d4683ffbbbec60728ec8ddb6221fd50cd38499260510a93065e5c73a105c5",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/shop_table/textures/steel_orange_roughness.png",
+      "source_sha256": "286d4683ffbbbec60728ec8ddb6221fd50cd38499260510a93065e5c73a105c5"
+    },
+    {
+      "path": "atec_robot_model/objects/task_e/shop_table/textures/vibrationtable_base_basecolor.png",
+      "sha256": "dc39397c2a7edbba84cd54276853da209455b0068dae7b098677fa7b5bbe78a0",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/objects/task_e/shop_table/textures/vibrationtable_base_basecolor.png",
+      "source_sha256": "dc39397c2a7edbba84cd54276853da209455b0068dae7b098677fa7b5bbe78a0"
+    },
+    {
+      "path": "atec_robot_model/robot/piper/config.yaml",
+      "sha256": "fd6605a3fd617fd431e4cd59d29d8346ebba13f983bebd51487f35329f961a67",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/robot/piper/config.yaml",
+      "source_sha256": "fd6605a3fd617fd431e4cd59d29d8346ebba13f983bebd51487f35329f961a67"
+    },
+    {
+      "path": "atec_robot_model/robot/piper/configuration/piper_base.usd",
+      "sha256": "441ab91764629f9a1cf4ed31628623425175e6da30a0834754f769238d072fe0",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/robot/piper/configuration/piper_base.usd",
+      "source_sha256": "441ab91764629f9a1cf4ed31628623425175e6da30a0834754f769238d072fe0"
+    },
+    {
+      "path": "atec_robot_model/robot/piper/configuration/piper_physics.usd",
+      "sha256": "81ae471b38850d9f1f28e869dee30d86c73d38d2d82ba7d78b984ce5c7f3dff6",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/robot/piper/configuration/piper_physics.usd",
+      "source_sha256": "81ae471b38850d9f1f28e869dee30d86c73d38d2d82ba7d78b984ce5c7f3dff6"
+    },
+    {
+      "path": "atec_robot_model/robot/piper/configuration/piper_sensor.usd",
+      "sha256": "04b0d38d0540afb8976f66e3d2b87d5560651e2e17f310f396b30d2fef9af983",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/robot/piper/configuration/piper_sensor.usd",
+      "source_sha256": "04b0d38d0540afb8976f66e3d2b87d5560651e2e17f310f396b30d2fef9af983"
+    },
+    {
+      "path": "atec_robot_model/robot/piper/piper.usd",
+      "sha256": "1c19fa993984bc476120d84dcfeb50356fac4f6551a34ffae344b3cc43c48623",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/robot/piper/piper.usd",
+      "source_sha256": "1c19fa993984bc476120d84dcfeb50356fac4f6551a34ffae344b3cc43c48623"
+    },
+    {
+      "path": "atec_robot_model/scene/kloofendal_43d_clear_puresky_4k.hdr",
+      "sha256": "1f92cbf17e46659ff37c9770d065280da226896b0f56091c4c1fca071da7fbeb",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/scene/kloofendal_43d_clear_puresky_4k.hdr",
+      "source_sha256": "1f92cbf17e46659ff37c9770d065280da226896b0f56091c4c1fca071da7fbeb"
+    },
+    {
+      "path": "atec_robot_model/scene/plane/Materials/Textures/WireframeBlur_basecolor.png",
+      "sha256": "deab39088eaf39ed7be951966c5e6bd5e58b90ab64743b0cdc8e5579fd5a99d9",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/scene/plane/Materials/Textures/WireframeBlur_basecolor.png",
+      "source_sha256": "deab39088eaf39ed7be951966c5e6bd5e58b90ab64743b0cdc8e5579fd5a99d9"
+    },
+    {
+      "path": "atec_robot_model/scene/plane/Materials/Textures/WireframeBlur_basecolor_invert.png",
+      "sha256": "064e284b2a8261a3a563fe35082b5d3d2680b971d203dde9757f60445e03dfa0",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/scene/plane/Materials/Textures/WireframeBlur_basecolor_invert.png",
+      "source_sha256": "064e284b2a8261a3a563fe35082b5d3d2680b971d203dde9757f60445e03dfa0"
+    },
+    {
+      "path": "atec_robot_model/scene/plane/Materials/Textures/WireframeBlur_blue.png",
+      "sha256": "44fc0e82007bb0bd94631cd7ec45986a71ed74b9413899fbffac13efe151be4b",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/scene/plane/Materials/Textures/WireframeBlur_blue.png",
+      "source_sha256": "44fc0e82007bb0bd94631cd7ec45986a71ed74b9413899fbffac13efe151be4b"
+    },
+    {
+      "path": "atec_robot_model/scene/plane/Materials/Textures/Wireframe_basecolor.png",
+      "sha256": "8341ae3296e72425e58556c7314ac30fdfa421fed69013eab82747791a4fc4e1",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/scene/plane/Materials/Textures/Wireframe_basecolor.png",
+      "source_sha256": "8341ae3296e72425e58556c7314ac30fdfa421fed69013eab82747791a4fc4e1"
+    },
+    {
+      "path": "atec_robot_model/scene/plane/Materials/Textures/Wireframe_blue.png",
+      "sha256": "940b96ee8c8e53bd1acbc770d4ca0ac98bed9c96439ab386d1b27dbc9790cc4e",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/scene/plane/Materials/Textures/Wireframe_blue.png",
+      "source_sha256": "940b96ee8c8e53bd1acbc770d4ca0ac98bed9c96439ab386d1b27dbc9790cc4e"
+    },
+    {
+      "path": "atec_robot_model/scene/plane/Materials/Textures/radialFalloffGrid_v02.png",
+      "sha256": "3f80853044c13f7ba50b5ed2b39c7478c9fd0ac1a5ffa55f37b5e081a98ea511",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/scene/plane/Materials/Textures/radialFalloffGrid_v02.png",
+      "source_sha256": "3f80853044c13f7ba50b5ed2b39c7478c9fd0ac1a5ffa55f37b5e081a98ea511"
+    },
+    {
+      "path": "atec_robot_model/scene/plane/Materials/Textures/radialGrid_clrmap_50.png",
+      "sha256": "645616e25dd4a51ca7d888ae6f23ca644655aecfa942af9baa530af33ef9c3db",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/scene/plane/Materials/Textures/radialGrid_clrmap_50.png",
+      "source_sha256": "645616e25dd4a51ca7d888ae6f23ca644655aecfa942af9baa530af33ef9c3db"
+    },
+    {
+      "path": "atec_robot_model/scene/plane/default_environment.usd",
+      "sha256": "8a21c317d638d33a4e6c20c958a7ed8f4d8c5195efd7e20f1b85178b4a15638a",
+      "status": "unchanged",
+      "source_path": "atec_robot_model/scene/plane/default_environment.usd",
+      "source_sha256": "8a21c317d638d33a4e6c20c958a7ed8f4d8c5195efd7e20f1b85178b4a15638a"
+    },
+    {
+      "path": "demo/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "unchanged",
+      "source_path": "demo/__init__.py",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "demo/act/detr/backbone.py",
+      "sha256": "a6f8d3d7bcd8f9140d14f4cc3bcff7d8e12e3920e9657db6b4a9912da9870b8c",
+      "status": "unchanged",
+      "source_path": "demo/act/detr/backbone.py",
+      "source_sha256": "a6f8d3d7bcd8f9140d14f4cc3bcff7d8e12e3920e9657db6b4a9912da9870b8c"
+    },
+    {
+      "path": "demo/act/detr/detr_vae.py",
+      "sha256": "504c699c78f3a5bb7dc57212aa481866528ad7e358468c874342816cf6309404",
+      "status": "unchanged",
+      "source_path": "demo/act/detr/detr_vae.py",
+      "source_sha256": "504c699c78f3a5bb7dc57212aa481866528ad7e358468c874342816cf6309404"
+    },
+    {
+      "path": "demo/act/detr/position_encoding.py",
+      "sha256": "9d6af17fd31e15f829a0ac6ac12545abb24f9ab858854ee812ca54b77ed498d1",
+      "status": "unchanged",
+      "source_path": "demo/act/detr/position_encoding.py",
+      "source_sha256": "9d6af17fd31e15f829a0ac6ac12545abb24f9ab858854ee812ca54b77ed498d1"
+    },
+    {
+      "path": "demo/act/detr/transformer.py",
+      "sha256": "dddbe9971de54aac624738f7b419ec78b16eaff1d8dcd2643c1abbed9031b527",
+      "status": "unchanged",
+      "source_path": "demo/act/detr/transformer.py",
+      "source_sha256": "dddbe9971de54aac624738f7b419ec78b16eaff1d8dcd2643c1abbed9031b527"
+    },
+    {
+      "path": "demo/act/detr/utils.py",
+      "sha256": "f1900cf70987c35833add73ab254d3ffc6e3e7860f543e1f50e8da120c770c8b",
+      "status": "unchanged",
+      "source_path": "demo/act/detr/utils.py",
+      "source_sha256": "f1900cf70987c35833add73ab254d3ffc6e3e7860f543e1f50e8da120c770c8b"
+    },
+    {
+      "path": "demo/solution.py",
+      "sha256": "029f954a47a05bfc011834f71661310ef41867c1beffb9d359d4d6a9fef0a5e5",
+      "status": "adapted",
+      "source_path": "demo/solution.py",
+      "source_sha256": "25e19a382e375e3d3dee71d53f4da01345d203b346f74f178fa57e1a7ba56936"
+    },
+    {
+      "path": "demo/solution_act.py",
+      "sha256": "57d29c4eeec1a1be4a76a04f9b8a2237834682091aebce8a7764ee60262e93b0",
+      "status": "adapted",
+      "source_path": "demo/solution_act.py",
+      "source_sha256": "3ee317ea789561c53d7a52426880d13bfe2c941e7b7b740254b8fc02628a1523"
+    },
+    {
+      "path": "docs/VALIDATION.json",
+      "sha256": "a172f337c5e4a68da7c9c2812a069b459943e46f4dff0c163b04253b4e218fa7",
+      "status": "new"
+    },
+    {
+      "path": "docs/baseline_act.gif",
+      "sha256": "20141421f69afd3a82017c48a587aef773369fd726b1c8f4c0a349a666989cf7",
+      "status": "new"
+    },
+    {
+      "path": "docs/piper.png",
+      "sha256": "cc3759e14f42ddc71179b0b324fe6a365fd6f042ebdbabd826923398f9c89f1e",
+      "status": "new"
+    },
+    {
+      "path": "requirements.txt",
+      "sha256": "4a4c35d7c53ec81787ed060a2efbda9a5cf45ab59b2f04187aa710d0dc3f7def",
+      "status": "new"
+    },
+    {
+      "path": "scripts/act/baseline.sh",
+      "sha256": "abe9932b5a2e138853981864a1c4999b7dd5f2fea823e232d48ff3a23a4362dc",
+      "status": "unchanged",
+      "source_path": "scripts/act/baseline.sh",
+      "source_sha256": "abe9932b5a2e138853981864a1c4999b7dd5f2fea823e232d48ff3a23a4362dc"
+    },
+    {
+      "path": "scripts/act/cli_args.py",
+      "sha256": "acb721a69d6f109cd851ad5af1e66c0f744bcf4916060fb6997d6870321b00b3",
+      "status": "unchanged",
+      "source_path": "scripts/act/cli_args.py",
+      "source_sha256": "acb721a69d6f109cd851ad5af1e66c0f744bcf4916060fb6997d6870321b00b3"
+    },
+    {
+      "path": "scripts/act/collect_demos_task_e.py",
+      "sha256": "b9615871cf1baec75a2e1718352bc6d4e3fba13eab72c5ae9853be5468c37a4e",
+      "status": "unchanged",
+      "source_path": "scripts/act/collect_demos_task_e.py",
+      "source_sha256": "b9615871cf1baec75a2e1718352bc6d4e3fba13eab72c5ae9853be5468c37a4e"
+    },
+    {
+      "path": "scripts/act/filter_demos.py",
+      "sha256": "5470eae66398d495b9a4a4e9fca496a0bbacbaed306c0f398271e2c9c3fcd6fe",
+      "status": "unchanged",
+      "source_path": "scripts/act/filter_demos.py",
+      "source_sha256": "5470eae66398d495b9a4a4e9fca496a0bbacbaed306c0f398271e2c9c3fcd6fe"
+    },
+    {
+      "path": "scripts/act/task_e/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "unchanged",
+      "source_path": "scripts/act/task_e/__init__.py",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "scripts/act/task_e/collector.py",
+      "sha256": "6d6c43eb897be001b40552c9dcf871005aa43454b7dd84d20d45f6f2afc6355d",
+      "status": "unchanged",
+      "source_path": "scripts/act/task_e/collector.py",
+      "source_sha256": "6d6c43eb897be001b40552c9dcf871005aa43454b7dd84d20d45f6f2afc6355d"
+    },
+    {
+      "path": "scripts/act/task_e/config.py",
+      "sha256": "131da80beb5c4ac96e250b1fe0708c8f5ee609d17290cad8de93511cc615bc1d",
+      "status": "unchanged",
+      "source_path": "scripts/act/task_e/config.py",
+      "source_sha256": "131da80beb5c4ac96e250b1fe0708c8f5ee609d17290cad8de93511cc615bc1d"
+    },
+    {
+      "path": "scripts/act/task_e/state_machine.py",
+      "sha256": "e0091cb83393eca8a1501b3e49cc49b01ae34bc54ccb92b0321be184007cca29",
+      "status": "unchanged",
+      "source_path": "scripts/act/task_e/state_machine.py",
+      "source_sha256": "e0091cb83393eca8a1501b3e49cc49b01ae34bc54ccb92b0321be184007cca29"
+    },
+    {
+      "path": "scripts/act/train_task_e.py",
+      "sha256": "38dd562bd758973358f4984c3dda8739ff8b3cabfd5964ea9110836204177911",
+      "status": "unchanged",
+      "source_path": "scripts/act/train_task_e.py",
+      "source_sha256": "38dd562bd758973358f4984c3dda8739ff8b3cabfd5964ea9110836204177911"
+    },
+    {
+      "path": "scripts/check_handoff.py",
+      "sha256": "812e25b8b9a8ff86bfcc1314cbd35cac982862fd58dd1034c691cb835da937af",
+      "status": "new"
+    },
+    {
+      "path": "scripts/play_atec_task.py",
+      "sha256": "c282d7548a6dbdbc8926d58f41f93500216e06a990d2a8fdda8382279ccbd633",
+      "status": "adapted",
+      "source_path": "scripts/play_atec_task.py",
+      "source_sha256": "e7cdf3720c48f3a7634491599bbf12d32672cacbf4672b35a7b7512185642cef"
+    },
+    {
+      "path": "scripts/view_task_e.py",
+      "sha256": "06099c1feb220ce06e43c00d4cd0d57f1835a6fcaef863c5b6e77c2b85439262",
+      "status": "unchanged",
+      "source_path": "scripts/view_task_e.py",
+      "source_sha256": "06099c1feb220ce06e43c00d4cd0d57f1835a6fcaef863c5b6e77c2b85439262"
+    },
+    {
+      "path": "source/atec_rl_lab/README.md",
+      "sha256": "6b4eec37060cbd281c10807d7a9488c68487ce63f4a503637b31ea6ad99d5fbd",
+      "status": "new"
+    },
+    {
+      "path": "source/atec_rl_lab/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/__init__.py",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/__init__.py",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/assets/__init__.py",
+      "sha256": "7819fb5ec56a872b678aa079eb9ae92223c0d0d86e882a90cfcbfaa84cd1ba17",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/assets/__init__.py",
+      "source_sha256": "7819fb5ec56a872b678aa079eb9ae92223c0d0d86e882a90cfcbfaa84cd1ba17"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/assets/objects/__init__.py",
+      "sha256": "c97c37c4cab1fa5d6264377505fc376b2251fbc9a248b587a4b83bd7ae312a29",
+      "status": "adapted",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/assets/objects/__init__.py",
+      "source_sha256": "8c456f8c597caca327777acfa0865a4c14ce5075d8b81fce4a953feea64b0304"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/assets/objects/task_e/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/assets/objects/task_e/__init__.py",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/assets/objects/task_e/basket.py",
+      "sha256": "54e43ded35a8f2ad6dc8c1cb98fce2088eaa04a0cd8dbba982b549e5757bcc44",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/assets/objects/task_e/basket.py",
+      "source_sha256": "54e43ded35a8f2ad6dc8c1cb98fce2088eaa04a0cd8dbba982b549e5757bcc44"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/assets/objects/task_e/object.py",
+      "sha256": "8112268c8d790784eaee264991bf2711c2f979d9ed4ad58ce640bd35d879515d",
+      "status": "adapted",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/assets/objects/task_b/object.py",
+      "source_sha256": "e156ce8c88028ef34371ab7b814beed5ab5092d3df75f6d1059dd5866fd6ae25"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/assets/objects/task_e/table.py",
+      "sha256": "730f1310f6be9014e41b2876628872a10d568f3e943528399d9d15a170b05832",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/assets/objects/task_e/table.py",
+      "source_sha256": "730f1310f6be9014e41b2876628872a10d568f3e943528399d9d15a170b05832"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/assets/robots/__init__.py",
+      "sha256": "c6e4ba517bad2715387ffc23fc1d39e2e8ccf485575bb4caf7a937e7b2781387",
+      "status": "adapted",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/assets/robots/__init__.py",
+      "source_sha256": "240b58db48b6e173423c9a913419137fa2a441a86c68752aaaff8e4efd25ba5c"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/assets/robots/cfg.py",
+      "sha256": "ac2b0a22772584b70b3b5cd19dad8ab3ecd1d378927993bcc1d0f7933984369e",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/assets/robots/cfg.py",
+      "source_sha256": "ac2b0a22772584b70b3b5cd19dad8ab3ecd1d378927993bcc1d0f7933984369e"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/assets/robots/piper.py",
+      "sha256": "18258c1e075c06f7a53a51380aabd675a095bf1b8e38cf107a57e35a707bde12",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/assets/robots/piper.py",
+      "source_sha256": "18258c1e075c06f7a53a51380aabd675a095bf1b8e38cf107a57e35a707bde12"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/tasks/__init__.py",
+      "sha256": "b91d0d5e26146c685e1ee72a965ba7383a9b2f2fa24adfefc7de8a7480d4961b",
+      "status": "adapted",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/tasks/__init__.py",
+      "source_sha256": "8d56cc8c7dc3ed0dc89f9c4ea4fb57d2aed76481199db1858b66ff26bfbfbf96"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/tasks/task_base/__init__.py",
+      "sha256": "3e3664c14bd4346f354ac48ba28ac517842f52da5ff3d538ea627f298e83952b",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/tasks/task_base/__init__.py",
+      "source_sha256": "3e3664c14bd4346f354ac48ba28ac517842f52da5ff3d538ea627f298e83952b"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/tasks/task_base/action_base.py",
+      "sha256": "a5e6d366cfd6fbdbff61b55f5e9a30ee0a9a50684abab1c8dc846502f2a09ee6",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/tasks/task_base/action_base.py",
+      "source_sha256": "a5e6d366cfd6fbdbff61b55f5e9a30ee0a9a50684abab1c8dc846502f2a09ee6"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/tasks/task_base/envs_base.py",
+      "sha256": "0749d8087ed5f400ac349a2c22ce1d35085041f482785565e8be80dc90834d9d",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/tasks/task_base/envs_base.py",
+      "source_sha256": "0749d8087ed5f400ac349a2c22ce1d35085041f482785565e8be80dc90834d9d"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/tasks/task_base/envs_base_cfg.py",
+      "sha256": "047450aced8131962ff3197ec1d514445ac12a775395708a0c9815b569f26b50",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/tasks/task_base/envs_base_cfg.py",
+      "source_sha256": "047450aced8131962ff3197ec1d514445ac12a775395708a0c9815b569f26b50"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/tasks/task_base/mdp/__init__.py",
+      "sha256": "41d3c4f2dd0576f1fe401c3484e1c7afb47d31273cd3ce44f5b2befd01086167",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/tasks/task_base/mdp/__init__.py",
+      "source_sha256": "41d3c4f2dd0576f1fe401c3484e1c7afb47d31273cd3ce44f5b2befd01086167"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/tasks/task_base/mdp/rewards.py",
+      "sha256": "017f3fcc8439a155239a288dec44dcdf0587a3cf8385ce17003821a08d77638d",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/tasks/task_base/mdp/rewards.py",
+      "source_sha256": "017f3fcc8439a155239a288dec44dcdf0587a3cf8385ce17003821a08d77638d"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/tasks/task_base/mdp/terminations.py",
+      "sha256": "221f64d43371bd56e82e48f33575bf11488575021180981d0fe5a2746a663d9c",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/tasks/task_base/mdp/terminations.py",
+      "source_sha256": "221f64d43371bd56e82e48f33575bf11488575021180981d0fe5a2746a663d9c"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/tasks/task_base/terrain_base.py",
+      "sha256": "bcd1c0e89bd9f48f3702b24439664a7899fffa652be7fe69e4f4fe1880fee600",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/tasks/task_base/terrain_base.py",
+      "source_sha256": "bcd1c0e89bd9f48f3702b24439664a7899fffa652be7fe69e4f4fe1880fee600"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/tasks/task_e/__init__.py",
+      "sha256": "25acc6ac000ecb422731e56ff4c8ecf1c144fc2a5a0f9a0462a88ed444b77782",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/tasks/task_e/__init__.py",
+      "source_sha256": "25acc6ac000ecb422731e56ff4c8ecf1c144fc2a5a0f9a0462a88ed444b77782"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/tasks/task_e/env_cfg.py",
+      "sha256": "af5d1cfa3977e4b32c4704e78b60af590e99330628032bab9f4ec83fdd902e51",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/tasks/task_e/env_cfg.py",
+      "source_sha256": "af5d1cfa3977e4b32c4704e78b60af590e99330628032bab9f4ec83fdd902e51"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/tasks/task_e/mdp/__init__.py",
+      "sha256": "b5de9cf283d190f5a86f45e3a80d341c252bbd6bda11aa937d40532d61aed7db",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/tasks/task_e/mdp/__init__.py",
+      "source_sha256": "b5de9cf283d190f5a86f45e3a80d341c252bbd6bda11aa937d40532d61aed7db"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/tasks/task_e/mdp/rewards.py",
+      "sha256": "ac96e75c60f8f16900bca1fe92278cf26b28304ece5b3c8064fe1e11c29b6016",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/tasks/task_e/mdp/rewards.py",
+      "source_sha256": "ac96e75c60f8f16900bca1fe92278cf26b28304ece5b3c8064fe1e11c29b6016"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/tasks/task_e/mdp/terminations.py",
+      "sha256": "7e8f205d6baba71769e3101554ebef0d5a245ac75cb3130cd30aa56801298a3c",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/tasks/task_e/mdp/terminations.py",
+      "source_sha256": "7e8f205d6baba71769e3101554ebef0d5a245ac75cb3130cd30aa56801298a3c"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/tasks/task_e/terrain.py",
+      "sha256": "1c950bcad48280d4ae9409a5ba2e3eae1901dd0d35d15f59896d594f08af049d",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/tasks/task_e/terrain.py",
+      "source_sha256": "1c950bcad48280d4ae9409a5ba2e3eae1901dd0d35d15f59896d594f08af049d"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/train/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "adapted",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/train/__init__.py",
+      "source_sha256": "d6559fe7c4ecb8560cfcf290996602f62785d9b059f7911c0c4d915ede113c7f"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/train/act/__init__.py",
+      "sha256": "70aa567ee926fd71c83e2f34c15d26ab6e6ee45eeef3300ef0ccf7b9eb14e067",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/train/act/__init__.py",
+      "source_sha256": "70aa567ee926fd71c83e2f34c15d26ab6e6ee45eeef3300ef0ccf7b9eb14e067"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/train/act/act/detr/backbone.py",
+      "sha256": "963baa9c29c9ca708e760acaab35654044af0f455d0aa7b9f3efe51ced20d104",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/train/act/act/detr/backbone.py",
+      "source_sha256": "963baa9c29c9ca708e760acaab35654044af0f455d0aa7b9f3efe51ced20d104"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/train/act/act/detr/detr_vae.py",
+      "sha256": "63a1828961edacf3d75ca280789fe3f52ee8fb36883a64d28bfb89c144451884",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/train/act/act/detr/detr_vae.py",
+      "source_sha256": "63a1828961edacf3d75ca280789fe3f52ee8fb36883a64d28bfb89c144451884"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/train/act/act/detr/position_encoding.py",
+      "sha256": "4159656ad8186cfed4865b11a5994c8cadf70234de410fce34cb4f046b79d19d",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/train/act/act/detr/position_encoding.py",
+      "source_sha256": "4159656ad8186cfed4865b11a5994c8cadf70234de410fce34cb4f046b79d19d"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/train/act/act/detr/transformer.py",
+      "sha256": "a8c5d6de698b88da50838e6c8cdbdf4702159695cf2c716c962466289e38ef01",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/train/act/act/detr/transformer.py",
+      "source_sha256": "a8c5d6de698b88da50838e6c8cdbdf4702159695cf2c716c962466289e38ef01"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/train/act/act/utils.py",
+      "sha256": "f1900cf70987c35833add73ab254d3ffc6e3e7860f543e1f50e8da120c770c8b",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/train/act/act/utils.py",
+      "source_sha256": "f1900cf70987c35833add73ab254d3ffc6e3e7860f543e1f50e8da120c770c8b"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/utils/__init__.py",
+      "sha256": "b62fb2ae236a9a9fb31f654d26fc9662e63c61b4bf6e8a82602ca826704e783c",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/utils/__init__.py",
+      "source_sha256": "b62fb2ae236a9a9fb31f654d26fc9662e63c61b4bf6e8a82602ca826704e783c"
+    },
+    {
+      "path": "source/atec_rl_lab/atec_rl_lab/utils/cartesian_controller.py",
+      "sha256": "dfa688b5ffa64663488a2e1eca6efa9be4cd124df261dcfedccf1051cecca19d",
+      "status": "unchanged",
+      "source_path": "source/atec_rl_lab/atec_rl_lab/utils/cartesian_controller.py",
+      "source_sha256": "dfa688b5ffa64663488a2e1eca6efa9be4cd124df261dcfedccf1051cecca19d"
+    },
+    {
+      "path": "source/atec_rl_lab/config/extension.toml",
+      "sha256": "bab601cee072e46af13255d766eb55b5cc2a4a47012747a4c69f3760cd812b5c",
+      "status": "adapted",
+      "source_path": "source/atec_rl_lab/config/extension.toml",
+      "source_sha256": "879a5a0f0b7de25ed1b802a10f14138290e7f9296bb227f7e3bc9719af43ba77"
+    },
+    {
+      "path": "source/atec_rl_lab/pyproject.toml",
+      "sha256": "aad62adff0d6b5b96a59913bb5f0cdd3e661e107d1a5956d3563c6453ac40657",
+      "status": "adapted",
+      "source_path": "source/atec_rl_lab/pyproject.toml",
+      "source_sha256": "a4dc9ccd10411548674a89684de71d7f233f294a481f5cb8354f8179052f93d4"
+    },
+    {
+      "path": "source/atec_rl_lab/setup.py",
+      "sha256": "c6ac3dc24fdd8b63c9d751cc3d102b8997ec135d883e407277cb55af828bfab6",
+      "status": "adapted",
+      "source_path": "source/atec_rl_lab/setup.py",
+      "source_sha256": "bde46b939ca888b225ce550fda91b09ae764db5ec7f7766597c9f44a2f28f31a"
+    }
+  ]
+}

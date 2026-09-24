@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+datasets/atec_task_e/*.hdf5
+datasets/atec_task_e/videos/
+scripts/act/runs/
+logs/
+.venv/
+atec_robot_model/

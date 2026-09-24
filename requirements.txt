@@ -1,0 +1,14 @@
+argcomplete
+diffusers
+gymnasium
+h5py
+imageio
+imageio-ffmpeg
+ipython
+numpy
+psutil
+scipy
+tensorboard
+toml
+tyro
+wandb

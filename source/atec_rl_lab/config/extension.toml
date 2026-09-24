@@ -1,0 +1,26 @@
+[package]
+
+# Semantic Versioning is used: https://semver.org/
+version = "0.1.0"
+
+# Description
+category = "isaaclab"
+readme  = "README.md"
+
+title = "ATEC Task E Tabletop Manipulation"
+author = "CUHK LRL"
+maintainer = "CUHK LRL"
+description="Task E tabletop manipulation environment and ACT policy tools"
+repository = "https://github.com/skywoodsz/ATEC2026_Simulation_Challenge"
+keywords = ["task-e", "tabletop-manipulation", "isaaclab", "act"]
+
+[dependencies]
+"isaaclab" = {}
+"isaaclab_assets" = {}
+"isaaclab_mimic" = {}
+"isaaclab_rl" = {}
+"isaaclab_tasks" = {}
+# NOTE: Add additional dependencies here
+
+[[python.module]]
+name = "atec_rl_lab"
