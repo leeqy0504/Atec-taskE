@@ -66,6 +66,7 @@ def _rerandomize_objects(env: ManagerBasedRLEnv, rng: np.random.Generator) -> di
 
 _BASKET_MIN_Z = TABLE_TOP_Z
 _BASKET_MAX_Z = TABLE_TOP_Z + 0.15
+_LIFTED_MIN_Z = TABLE_TOP_Z + 0.01
 
 def objects_in_basket(env: ManagerBasedRLEnv, pick_objects: list[int]) -> dict[str, bool]:
     """Return per-object flags using the exact Task E termination bounds."""
@@ -165,7 +166,47 @@ def collect_one_demo(
     terminal_reset_encountered = False
     last_positions = initial_positions
     ever_in_basket = {f"object_{obj_idx}": False for obj_idx in pick_objects}
+    # A lift is relative to the object's settled spawn height.  Comparing to
+    # table height would incorrectly mark tall objects as lifted at t=0.
+    initial_z = {
+        key: float(position[2]) for key, position in initial_positions.items()
+    }
+    ever_lifted = {f"object_{obj_idx}": False for obj_idx in pick_objects}
+    step_trace: list[dict] = []
+    phase_intervals: list[dict] = []
+    active_phase: dict | None = None
+
+    def _local_position(obj_idx: int) -> list[float]:
+        origin = env.unwrapped.scene.env_origins[0]
+        pos = (
+            env.unwrapped.scene.rigid_objects[f"object_{obj_idx}"].data.root_pos_w[0, :3]
+            - origin
+        )
+        return [float(value) for value in pos.detach().cpu().tolist()]
+
     while not sm.done:
+        step_idx = len(qpos_buf)
+        state_name = sm.state
+        object_idx = sm._obj_indices[sm._ptr]
+        object_key = f"object_{object_idx}"
+
+        # Keep explicit phase intervals so a failed episode can be located
+        # without reconstructing the state machine from the raw actions.
+        if active_phase is None:
+            active_phase = {
+                "object": object_idx,
+                "state": state_name,
+                "start_step": step_idx,
+            }
+        elif active_phase["object"] != object_idx or active_phase["state"] != state_name:
+            active_phase["end_step"] = step_idx
+            phase_intervals.append(active_phase)
+            active_phase = {
+                "object": object_idx,
+                "state": state_name,
+                "start_step": step_idx,
+            }
+
         obj_pos_w = env.unwrapped.scene.rigid_objects[sm.current_object_key] \
                         .data.root_pos_w[0].clone()
         current_flags = objects_in_basket(env, pick_objects)
@@ -180,6 +221,26 @@ def collect_one_demo(
         }
         ee_pos_des, ee_quat_des, gripper_cmd = sm.tick(obj_pos_w)
 
+        object_local = _local_position(object_idx)
+        ee_local = (
+            ik_ctrl.ee_pos_w[0].detach().cpu() - origin.detach().cpu()
+        ).tolist()
+        lifted = object_local[2] >= initial_z[object_key] + 0.05
+        ever_lifted[object_key] |= lifted
+        step_trace.append({
+            "step": step_idx,
+            "object": object_idx,
+            "state": state_name,
+            "object_local_m": object_local,
+            "ee_local_m": [float(value) for value in ee_local],
+            "ee_target_local_m": [
+                float(value) for value in (ee_pos_des.detach().cpu() - origin.detach().cpu()).tolist()
+            ],
+            "gripper": gripper_cmd,
+            "lifted": bool(lifted),
+            "objects_in_basket": dict(current_flags),
+        })
+
         arm_jpos_des   = ik_ctrl.compute(ee_pos_des.unsqueeze(0), ee_quat_des.unsqueeze(0))
         gripper_vals   = GRIPPER_OPEN_POS if gripper_cmd == "open" else GRIPPER_CLOSE_POS
         gripper_target = torch.tensor([gripper_vals], dtype=torch.float32, device=device)
@@ -187,6 +248,8 @@ def collect_one_demo(
         full_target = robot.data.joint_pos.clone()
         full_target[:, arm_ids]     = arm_jpos_des
         full_target[:, gripper_ids] = gripper_target
+        step_trace[-1]["gripper_target"] = [float(value) for value in gripper_vals]
+        step_trace[-1]["joint_target"] = full_target[0].detach().cpu().tolist()
         env_action = (full_target - default_jpos) / ACTION_SCALE
 
         # Record BEFORE stepping (obs at time t, action at time t)
@@ -222,6 +285,27 @@ def collect_one_demo(
         termination_reason = [name for name, active in terminal_terms.items() if active]
     else:
         termination_reason = ["state_machine_complete"] if sm.done else ["collector_stopped"]
+    if active_phase is not None:
+        active_phase["end_step"] = len(step_trace)
+        phase_intervals.append(active_phase)
+
+    failure_stage = None
+    failure_object = None
+    if not success:
+        failure_object = next(
+            (obj_idx for obj_idx in pick_objects
+             if not final_flags.get(f"object_{obj_idx}", False)),
+            None,
+        )
+        if failure_object is not None:
+            object_key = f"object_{failure_object}"
+            if not ever_lifted[object_key]:
+                failure_stage = "LIFT"
+            elif not ever_in_basket[object_key]:
+                failure_stage = "PLACE"
+            else:
+                failure_stage = phase_intervals[-1]["state"] if phase_intervals else None
+
     metadata = {
         "seed": int(getattr(env.unwrapped.cfg, "seed", -1)),
         "object_order": list(pick_objects),
@@ -229,10 +313,17 @@ def collect_one_demo(
         "final_object_positions_local_m": last_positions,
         "objects_in_basket": final_flags,
         "ever_in_basket": ever_in_basket,
+        "ever_lifted": ever_lifted,
         "completed_object_count": int(sum(final_flags.values())),
         "ever_completed_object_count": int(sum(ever_in_basket.values())),
         "success": success,
         "termination_reason": termination_reason,
+        "termination_step": len(step_trace),
+        "last_phase": phase_intervals[-1]["state"] if phase_intervals else None,
+        "failure_stage": failure_stage,
+        "failure_object": failure_object,
+        "phase_intervals": phase_intervals,
+        "step_trace": step_trace,
         "terminal_reset_encountered": terminal_reset_encountered,
         "cross_reset": False,
     }

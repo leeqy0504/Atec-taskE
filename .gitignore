@@ -9,3 +9,4 @@ scripts/act/runs/
 logs/
 .venv/
 atec_robot_model/
+datasets/

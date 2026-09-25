@@ -40,8 +40,10 @@ add_collect_demo_args(parser)
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 
-if args_cli.save_video or args_cli.save_images:
-    args_cli.enable_cameras = True
+# TaskEEnvPiperCfg always declares the external and end-effector camera
+# sensors. Isaac Sim must enable camera extensions before constructing that
+# environment, even when this run does not save RGB frames.
+args_cli.enable_cameras = True
 
 app_launcher   = AppLauncher(args_cli)
 simulation_app = app_launcher.app

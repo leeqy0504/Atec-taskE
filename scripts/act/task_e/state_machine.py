@@ -7,7 +7,8 @@ from .config import (
     STEPS, STATE_ORDER,
     CARRY_Z, PLACE_HEIGHT,
     RETRACT_POS_X, RETRACT_POS_Y,
-    GRASP_Z_OFFSET,
+    GRASP_Z_OFFSET, GRASP_Z_OFFSETS,
+    GRASP_LONG_AXIS,
     BASKET_CENTER_X, BASKET_CENTER_Y,
     DEFAULT_PLACE_QUAT_W,
 )
@@ -33,7 +34,9 @@ def _build_grasp_matrix(long_axis: torch.Tensor, grip_z: torch.Tensor) -> torch.
     return torch.stack([align_dir, jaw_dir, grip_z], dim=1)   # (3, 3)
 
 
-def compute_grasp_quat(obj_quat_w: torch.Tensor, device: str) -> torch.Tensor:
+def compute_grasp_quat(
+    obj_quat_w: torch.Tensor, device: str, preferred_axis: int | None = None
+) -> torch.Tensor:
     """Compute a top-down grasp quaternion for the object.
 
     Finds the object axis most aligned with the world XY-plane (the long axis),
@@ -66,6 +69,12 @@ def compute_grasp_quat(obj_quat_w: torch.Tensor, device: str) -> torch.Tensor:
         for c in range(3)
         if norms[c] >= best_norm - 1e-3
     ]
+
+    # Prefer the known asset long axis when supplied.  This disambiguates
+    # meshes whose two horizontal root axes are both equally aligned.
+    if preferred_axis is not None and 0 <= preferred_axis < len(axes_xy):
+        if norms[preferred_axis] >= best_norm - 1e-3:
+            candidates = [axes_xy[preferred_axis] / max(norms[preferred_axis], 1e-6)]
 
     # Among candidates, pick the one whose grasp frame is closest to the default orientation
     best_cos  = -2.0
@@ -104,7 +113,9 @@ class PickPlaceStateMachine:
 
     def set_grasp_quat(self, obj_idx: int, obj_quat_w: torch.Tensor) -> None:
         """Pre-compute and cache the grasp quaternion for one object."""
-        self._grasp_quat_cache[obj_idx] = compute_grasp_quat(obj_quat_w, self._device)
+        self._grasp_quat_cache[obj_idx] = compute_grasp_quat(
+            obj_quat_w, self._device, GRASP_LONG_AXIS.get(obj_idx)
+        )
 
     def tick(self, obj_pos: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, str]:
         """Advance the state machine by one step.
@@ -171,10 +182,10 @@ class PickPlaceStateMachine:
             p = obj_pos.clone(); p[2] = CARRY_Z
             return p, "open"
         elif s == "REACH":
-            p = obj_pos.clone(); p[2] += GRASP_Z_OFFSET
+            p = obj_pos.clone(); p[2] += self._grasp_z_offset()
             return p, "open"
         elif s == "CLOSE":
-            p = obj_pos.clone(); p[2] += GRASP_Z_OFFSET
+            p = obj_pos.clone(); p[2] += self._grasp_z_offset()
             return p, "close"
         elif s == "LIFT":
             p = obj_pos.clone(); p[2] = CARRY_Z
@@ -198,3 +209,8 @@ class PickPlaceStateMachine:
             cur_idx = self._obj_indices[min(self._ptr, len(self._obj_indices) - 1)]
             return self._grasp_quat_cache.get(cur_idx, default_quat)
         return default_quat
+
+    def _grasp_z_offset(self) -> float:
+        """Return the calibrated approach offset for the current object."""
+        obj_idx = self._obj_indices[min(self._ptr, len(self._obj_indices) - 1)]
+        return float(GRASP_Z_OFFSETS.get(obj_idx, GRASP_Z_OFFSET))
