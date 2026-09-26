@@ -3,6 +3,7 @@
 import numpy as np
 import torch
 from isaaclab.envs import ManagerBasedRLEnv
+from isaaclab.utils.math import quat_apply, quat_apply_inverse
 from atec_rl_lab.utils import CartesianController
 from atec_rl_lab.tasks.task_e.env_cfg import (
     TABLE_TOP_Z,
@@ -11,11 +12,14 @@ from atec_rl_lab.tasks.task_e.env_cfg import (
 
 from .config import (
     ACTION_SCALE,
-    GRIPPER_OPEN_POS, GRIPPER_CLOSE_POS,
+    GRIPPER_OPEN_POS,
     RETRACT_POS_X, RETRACT_POS_Y, CARRY_Z,
     DEFAULT_PLACE_QUAT_W,
     OBJ_SPAWN_X_MIN, OBJ_SPAWN_X_MAX, OBJ_SPAWN_Z, OBJ_SPAWN_Y_BANDS,
     OBJ_HALF_EXTENTS, OBJ_BBOX_MARGIN,
+    GRASP_FINGER_CENTER_OBJECTS,
+    LIFT_MAX_TARGET_XY_STEP, LIFT_MAX_LATERAL_DISPLACEMENT,
+    STEPS,
     WARMUP_STEPS, SETTLE_STEPS,
 )
 from .state_machine import PickPlaceStateMachine
@@ -95,6 +99,12 @@ def _termination_terms(env: ManagerBasedRLEnv) -> dict[str, bool]:
     }
 
 
+def _quaternion_angle(q_a: torch.Tensor, q_b: torch.Tensor) -> float:
+    """Return the shortest angular distance between two unit quaternions."""
+    dot = torch.abs(torch.sum(q_a * q_b)).clamp(0.0, 1.0)
+    return float((2.0 * torch.acos(dot)).item())
+
+
 def collect_one_demo(
     env:         ManagerBasedRLEnv,
     robot,
@@ -126,6 +136,14 @@ def collect_one_demo(
 
     initial_positions = _rerandomize_objects(env, rng)  # write positions and forward sim
     default_jpos = robot.data.default_joint_pos.clone()
+    origin = env.unwrapped.scene.env_origins[0]
+
+    def _local_position(obj_idx: int) -> list[float]:
+        pos = (
+            env.unwrapped.scene.rigid_objects[f"object_{obj_idx}"].data.root_pos_w[0, :3]
+            - origin
+        )
+        return [float(value) for value in pos.detach().cpu().tolist()]
 
     ee_home = torch.tensor([[RETRACT_POS_X, RETRACT_POS_Y, CARRY_Z]],
                             dtype=torch.float32, device=device)
@@ -135,6 +153,22 @@ def collect_one_demo(
     robot.update(dt=env.unwrapped.physics_dt)
     ik_ctrl.reset()
 
+    finger_ids, finger_names = robot.find_bodies(["link7", "link8"], preserve_order=True)
+    if finger_names != ["link7", "link8"]:
+        raise RuntimeError(
+            f"Expected Piper finger links ['link7', 'link8'], found {finger_names}"
+        )
+    gripper_limits = robot.data.joint_pos_limits[0, gripper_ids].detach().cpu()
+    close_target = torch.tensor(
+        [gripper_limits[0, 0].item(), gripper_limits[1, 1].item()],
+        dtype=torch.float32,
+        device=device,
+    )
+    if torch.any(close_target < robot.data.joint_pos_limits[0, gripper_ids, 0]) or torch.any(
+        close_target > robot.data.joint_pos_limits[0, gripper_ids, 1]
+    ):
+        raise RuntimeError(f"Derived gripper close target {close_target.tolist()} is outside hard limits")
+
     # Warm-up: drive arm to HOME position (not recorded)
     for _ in range(WARMUP_STEPS):
         if _step_to(env, robot, ik_ctrl, arm_ids, gripper_ids,
@@ -142,12 +176,16 @@ def collect_one_demo(
             print("[WARN] Episode ended during warm-up; discarding attempt.")
             return None
 
-    # Pre-compute grasp quaternions from actual object orientations after reset
+    # Create the state machine before settling.  We retain the reset pose and
+    # conditionally refresh it below if settling materially rolls an object.
     sm = PickPlaceStateMachine(pick_objects, device)
-    for obj_idx in pick_objects:
-        obj_quat = env.unwrapped.scene.rigid_objects[f"object_{obj_idx}"] \
-                       .data.root_state_w[0, 3:7]
-        sm.set_grasp_quat(obj_idx, obj_quat)
+    pre_settle_poses = {
+        obj_idx: env.unwrapped.scene.rigid_objects[f"object_{obj_idx}"]
+        .data.root_state_w[0].clone()
+        for obj_idx in pick_objects
+    }
+    for obj_idx, state in pre_settle_poses.items():
+        sm.set_grasp_quat(obj_idx, state[3:7])
 
     # Settle
     for _ in range(SETTLE_STEPS):
@@ -158,38 +196,88 @@ def collect_one_demo(
 
     ik_ctrl.reset()
 
+    # Use the post-settle pose only when the object actually rolled or moved
+    # materially.  Stable assets keep the reset-pose grasp orientation that was
+    # calibrated in the single-object regressions.
+    for obj_idx in pick_objects:
+        post_state = env.unwrapped.scene.rigid_objects[f"object_{obj_idx}"] \
+                     .data.root_state_w[0].clone()
+        pre_state = pre_settle_poses[obj_idx]
+        position_delta = torch.linalg.norm(post_state[:3] - pre_state[:3]).item()
+        orientation_delta = _quaternion_angle(post_state[3:7], pre_state[3:7])
+        if position_delta > 0.02 or orientation_delta > 0.10:
+            sm.set_grasp_quat(obj_idx, post_state[3:7])
+
+    settled_positions = {
+        f"object_{obj_idx}": _local_position(obj_idx) for obj_idx in pick_objects
+    }
+
+    ee_quat_home_w = ik_ctrl.ee_quat_w.clone()
+    ee_pos_home_w = ik_ctrl.ee_pos_w.clone()
+    finger_positions_home_w = robot.data.body_link_pos_w[:, finger_ids, :3]
+    finger_center_offset_b = quat_apply_inverse(
+        ee_quat_home_w,
+        finger_positions_home_w.mean(dim=1) - ee_pos_home_w,
+    )
+
     # ---- Recording loop ---- #
     qpos_buf, qvel_buf, ee_pos_buf, ee_quat_buf, action_buf = [], [], [], [], []
     frames_buf = [] if camera is not None else None
 
     terminal_terms: dict[str, bool] = {}
     terminal_reset_encountered = False
-    last_positions = initial_positions
+    last_positions = settled_positions
     ever_in_basket = {f"object_{obj_idx}": False for obj_idx in pick_objects}
     # A lift is relative to the object's settled spawn height.  Comparing to
     # table height would incorrectly mark tall objects as lifted at t=0.
     initial_z = {
-        key: float(position[2]) for key, position in initial_positions.items()
+        key: float(position[2]) for key, position in settled_positions.items()
     }
     ever_lifted = {f"object_{obj_idx}": False for obj_idx in pick_objects}
+    lift_consecutive = {f"object_{obj_idx}": 0 for obj_idx in pick_objects}
+    lift_loss_consecutive = {f"object_{obj_idx}": 0 for obj_idx in pick_objects}
+    lift_lost_state: dict[str, str | None] = {f"object_{obj_idx}": None for obj_idx in pick_objects}
+    close_push: dict[str, bool] = {f"object_{obj_idx}": False for obj_idx in pick_objects}
+    close_start_pos: dict[str, list[float] | None] = {f"object_{obj_idx}": None for obj_idx in pick_objects}
+    lift_anchor_xy_w: dict[str, torch.Tensor | None] = {
+        f"object_{obj_idx}": None for obj_idx in pick_objects
+    }
+    lift_target_xy_w: dict[str, torch.Tensor | None] = {
+        f"object_{obj_idx}": None for obj_idx in pick_objects
+    }
+    lift_start_ee_local: dict[str, list[float] | None] = {
+        f"object_{obj_idx}": None for obj_idx in pick_objects
+    }
+    lift_start_object_local: dict[str, list[float] | None] = {
+        f"object_{obj_idx}": None for obj_idx in pick_objects
+    }
+    lift_start_z_w: dict[str, float | None] = {
+        f"object_{obj_idx}": None for obj_idx in pick_objects
+    }
+    lift_hold_quat: dict[str, torch.Tensor | None] = {
+        f"object_{obj_idx}": None for obj_idx in pick_objects
+    }
+    lift_step_count: dict[str, int] = {f"object_{obj_idx}": 0 for obj_idx in pick_objects}
+    lift_prev_target_w: dict[str, torch.Tensor | None] = {
+        f"object_{obj_idx}": None for obj_idx in pick_objects
+    }
+    lift_prev_actual_z: dict[str, float | None] = {
+        f"object_{obj_idx}": None for obj_idx in pick_objects
+    }
+    lift_target_lateral_max: dict[str, float] = {f"object_{obj_idx}": 0.0 for obj_idx in pick_objects}
+    lift_actual_lateral_max: dict[str, float] = {f"object_{obj_idx}": 0.0 for obj_idx in pick_objects}
+    lift_object_lateral_max: dict[str, float] = {f"object_{obj_idx}": 0.0 for obj_idx in pick_objects}
+    lift_z_monotonic: dict[str, bool] = {f"object_{obj_idx}": True for obj_idx in pick_objects}
+    lift_actual_z_monotonic: dict[str, bool] = {f"object_{obj_idx}": True for obj_idx in pick_objects}
+    lift_orientation_error_max: dict[str, float] = {f"object_{obj_idx}": 0.0 for obj_idx in pick_objects}
     step_trace: list[dict] = []
     phase_intervals: list[dict] = []
     active_phase: dict | None = None
-
-    def _local_position(obj_idx: int) -> list[float]:
-        origin = env.unwrapped.scene.env_origins[0]
-        pos = (
-            env.unwrapped.scene.rigid_objects[f"object_{obj_idx}"].data.root_pos_w[0, :3]
-            - origin
-        )
-        return [float(value) for value in pos.detach().cpu().tolist()]
-
     while not sm.done:
         step_idx = len(qpos_buf)
         state_name = sm.state
         object_idx = sm._obj_indices[sm._ptr]
         object_key = f"object_{object_idx}"
-
         # Keep explicit phase intervals so a failed episode can be located
         # without reconstructing the state machine from the raw actions.
         if active_phase is None:
@@ -209,6 +297,8 @@ def collect_one_demo(
 
         obj_pos_w = env.unwrapped.scene.rigid_objects[sm.current_object_key] \
                         .data.root_pos_w[0].clone()
+        obj_quat_w = env.unwrapped.scene.rigid_objects[sm.current_object_key] \
+                        .data.root_state_w[0, 3:7].clone()
         current_flags = objects_in_basket(env, pick_objects)
         for key, value in current_flags.items():
             ever_in_basket[key] |= value
@@ -226,23 +316,146 @@ def collect_one_demo(
             ik_ctrl.ee_pos_w[0].detach().cpu() - origin.detach().cpu()
         ).tolist()
         lifted = object_local[2] >= initial_z[object_key] + 0.05
-        ever_lifted[object_key] |= lifted
+        finger_positions_w = robot.data.body_link_pos_w[0, finger_ids, :3]
+        finger_positions_local = (finger_positions_w - origin).detach().cpu().tolist()
+        finger_center_local = [
+            float(value) for value in finger_positions_w.mean(dim=0)
+            .sub(origin).detach().cpu().tolist()
+        ]
+        finger_center_w = finger_positions_w.mean(dim=0)
+        finger_gap = float(torch.linalg.norm(
+            robot.data.body_link_pos_w[0, finger_ids[0], :3]
+            - robot.data.body_link_pos_w[0, finger_ids[1], :3]
+        ).item())
+        joint_actual = robot.data.joint_pos[0, gripper_ids].detach().cpu().tolist()
+        if state_name == "CLOSE" and close_start_pos[object_key] is None:
+            close_start_pos[object_key] = object_local
         step_trace.append({
             "step": step_idx,
             "object": object_idx,
             "state": state_name,
             "object_local_m": object_local,
+            "object_quat_w": [float(value) for value in obj_quat_w.detach().cpu().tolist()],
             "ee_local_m": [float(value) for value in ee_local],
             "ee_target_local_m": [
                 float(value) for value in (ee_pos_des.detach().cpu() - origin.detach().cpu()).tolist()
             ],
+            "ee_base_target_local_m": None,
+            "finger_positions_local_m": finger_positions_local,
+            "finger_center_local_m": finger_center_local,
+            "finger_center_target_local_m": None,
+            "finger_gap_m": finger_gap,
+            "lift_target_local_m": None,
+            "lift_target_delta_xy_m": None,
+            "lift_target_delta_z_m": None,
+            "lift_lateral_displacement_m": None,
+            "lift_z_monotonic": None,
+            "lift_orientation_error": None,
             "gripper": gripper_cmd,
+            "gripper_joint_actual": [float(value) for value in joint_actual],
             "lifted": bool(lifted),
+            "lift_consecutive_steps": lift_consecutive[object_key],
             "objects_in_basket": dict(current_flags),
         })
 
-        arm_jpos_des   = ik_ctrl.compute(ee_pos_des.unsqueeze(0), ee_quat_des.unsqueeze(0))
-        gripper_vals   = GRIPPER_OPEN_POS if gripper_cmd == "open" else GRIPPER_CLOSE_POS
+        # REACH/CLOSE targets are specified at the fingertip midpoint.  The
+        # other state-machine waypoints retain their historical gripper-base
+        # semantics (carry/place heights were calibrated in that frame).
+        use_finger_center_target = object_idx in GRASP_FINGER_CENTER_OBJECTS
+        if use_finger_center_target and state_name in ("REACH", "CLOSE"):
+            grasp_feedback_gain = 1.5
+            finger_target = ee_pos_des.clone()
+            if state_name == "PRE_GRASP":
+                # PRE_GRASP's waypoint is a safe-height approach point.  With
+                # the object-aligned orientation already active, interpret it
+                # at the fingertip center as well, otherwise rotating the wrist
+                # changes the base-to-finger XY offset and causes a sideways
+                # approach before the actual descent.
+                finger_target[2] = CARRY_Z
+            ee_pos_base_des = ik_ctrl.ee_pos_w.clone() + grasp_feedback_gain * (
+                finger_target.unsqueeze(0) - finger_center_w.unsqueeze(0)
+            )
+            step_trace[-1]["finger_center_target_local_m"] = [
+                float(value) for value in (finger_target.detach().cpu() - origin.detach().cpu()).tolist()
+            ]
+            step_trace[-1]["grasp_feedback_gain"] = grasp_feedback_gain
+        elif state_name == "LIFT":
+            # Lock the grasp pose at the start of LIFT.  The Z target is
+            # interpolated over the whole phase; XY may correct only toward
+            # the locked anchor and is limited to a small per-step movement.
+            if lift_anchor_xy_w[object_key] is None:
+                lift_anchor_xy_w[object_key] = ik_ctrl.ee_pos_w[:, :2].clone()
+                lift_target_xy_w[object_key] = lift_anchor_xy_w[object_key].clone()
+                lift_start_ee_local[object_key] = list(ee_local)
+                lift_start_object_local[object_key] = list(object_local)
+                lift_start_z_w[object_key] = float(ik_ctrl.ee_pos_w[0, 2].item())
+                lift_hold_quat[object_key] = ee_quat_des.clone()
+                lift_prev_target_w[object_key] = ik_ctrl.ee_pos_w[0].clone()
+
+            anchor_xy = lift_anchor_xy_w[object_key]
+            target_xy = lift_target_xy_w[object_key]
+            assert anchor_xy is not None and target_xy is not None
+            xy_error = anchor_xy[0] - ik_ctrl.ee_pos_w[:, :2]
+            xy_norm = torch.linalg.norm(xy_error, dim=1, keepdim=True).clamp(min=1e-9)
+            xy_step = xy_error * torch.clamp(
+                LIFT_MAX_TARGET_XY_STEP / xy_norm, max=1.0
+            )
+            target_xy = target_xy + xy_step
+            lift_target_xy_w[object_key] = target_xy
+            lift_step_count[object_key] += 1
+            alpha = min(lift_step_count[object_key] / max(STEPS["LIFT"], 1), 1.0)
+            start_z = lift_start_z_w[object_key]
+            assert start_z is not None
+            lift_target_z = start_z + alpha * (CARRY_Z - start_z)
+
+            ee_pos_base_des = ik_ctrl.ee_pos_w.clone()
+            ee_pos_base_des[:, :2] = target_xy
+            ee_pos_base_des[:, 2] = lift_target_z
+            if lift_hold_quat[object_key] is not None:
+                ee_quat_des = lift_hold_quat[object_key]
+            step_trace[-1]["lift_axis"] = "world_z_primary_limited_xy"
+
+            target_w = ee_pos_base_des[0].clone()
+            previous_target = lift_prev_target_w[object_key]
+            if previous_target is None:
+                target_delta = torch.zeros(3, device=device)
+            else:
+                target_delta = target_w - previous_target
+            lift_prev_target_w[object_key] = target_w
+            step_trace[-1]["lift_target_local_m"] = [
+                float(value) for value in (target_w.detach().cpu() - origin.detach().cpu()).tolist()
+            ]
+            step_trace[-1]["lift_target_delta_xy_m"] = float(
+                torch.linalg.norm(target_delta[:2]).item()
+            )
+            step_trace[-1]["lift_target_delta_z_m"] = float(target_delta[2].item())
+            lift_target_lateral_max[object_key] = max(
+                lift_target_lateral_max[object_key],
+                float(torch.linalg.norm(target_delta[:2]).item()),
+            )
+            step_trace[-1]["lift_z_monotonic"] = bool(target_delta[2].item() >= -1e-6)
+            lift_z_monotonic[object_key] &= bool(target_delta[2].item() >= -1e-6)
+            step_trace[-1]["lift_orientation_error"] = _quaternion_angle(
+                ik_ctrl.ee_quat_w[0], ee_quat_des
+            )
+            lift_orientation_error_max[object_key] = max(
+                lift_orientation_error_max[object_key], step_trace[-1]["lift_orientation_error"]
+            )
+        else:
+            ee_pos_base_des = ee_pos_des.unsqueeze(0)
+        step_trace[-1]["ee_base_target_local_m"] = [
+            float(value) for value in (ee_pos_base_des[0].detach().cpu() - origin.detach().cpu()).tolist()
+        ]
+        ee_error = ee_pos_base_des[0] - ik_ctrl.ee_pos_w[0]
+        finger_error = ee_pos_des - finger_center_w
+        step_trace[-1]["ee_target_error_m"] = [float(value) for value in ee_error.detach().cpu().tolist()]
+        step_trace[-1]["ee_target_error_norm_m"] = float(torch.linalg.norm(ee_error).item())
+        step_trace[-1]["finger_center_error_m"] = [
+            float(value) for value in finger_error.detach().cpu().tolist()
+        ]
+        step_trace[-1]["finger_center_error_norm_m"] = float(torch.linalg.norm(finger_error).item())
+        arm_jpos_des   = ik_ctrl.compute(ee_pos_base_des, ee_quat_des.unsqueeze(0))
+        gripper_vals   = GRIPPER_OPEN_POS if gripper_cmd == "open" else close_target.tolist()
         gripper_target = torch.tensor([gripper_vals], dtype=torch.float32, device=device)
 
         full_target = robot.data.joint_pos.clone()
@@ -263,6 +476,94 @@ def collect_one_demo(
             frames_buf.append(rgba[:, :, :3])
 
         _, _, terminated, truncated, _ = env.step(env_action)
+
+        object_local_post = _local_position(object_idx)
+        object_quat_post = env.unwrapped.scene.rigid_objects[object_key] \
+                              .data.root_state_w[0, 3:7].detach().cpu().tolist()
+        ee_local_post = (
+            ik_ctrl.ee_pos_w[0].detach().cpu() - origin.detach().cpu()
+        ).tolist()
+        finger_positions_post = (
+            robot.data.body_link_pos_w[0, finger_ids, :3] - origin
+        ).detach().cpu().tolist()
+        finger_center_post = [
+            float(value) for value in robot.data.body_link_pos_w[0, finger_ids, :3]
+            .mean(dim=0).sub(origin).detach().cpu().tolist()
+        ]
+        joint_actual_post = robot.data.joint_pos[0, gripper_ids].detach().cpu().tolist()
+        lift_now = object_local_post[2] >= initial_z[object_key] + 0.05
+        if state_name == "LIFT":
+            start_ee = lift_start_ee_local[object_key]
+            start_obj = lift_start_object_local[object_key]
+            if start_ee is not None:
+                lateral_displacement = float(np.linalg.norm(
+                    np.asarray(ee_local_post[:2]) - np.asarray(start_ee[:2])
+                ))
+                lift_actual_lateral_max[object_key] = max(
+                    lift_actual_lateral_max[object_key], lateral_displacement
+                )
+                step_trace[-1]["lift_lateral_displacement_m"] = lateral_displacement
+            if start_obj is not None:
+                object_lateral_displacement = float(np.linalg.norm(
+                    np.asarray(object_local_post[:2]) - np.asarray(start_obj[:2])
+                ))
+                lift_object_lateral_max[object_key] = max(
+                    lift_object_lateral_max[object_key], object_lateral_displacement
+                )
+            previous_actual_z = lift_prev_actual_z[object_key]
+            actual_z_monotonic = previous_actual_z is None or object_local_post[2] >= previous_actual_z - 1e-4
+            lift_actual_z_monotonic[object_key] &= actual_z_monotonic
+            lift_prev_actual_z[object_key] = object_local_post[2]
+            step_trace[-1]["lift_actual_z_monotonic"] = bool(actual_z_monotonic)
+        if lift_now:
+            lift_consecutive[object_key] += 1
+            lift_loss_consecutive[object_key] = 0
+        else:
+            lift_consecutive[object_key] = 0
+            if ever_lifted[object_key]:
+                lift_loss_consecutive[object_key] += 1
+                if lift_loss_consecutive[object_key] >= 5 and lift_lost_state[object_key] is None:
+                    lift_lost_state[object_key] = state_name
+        if lift_consecutive[object_key] >= 5:
+            ever_lifted[object_key] = True
+        object_displacement = float(np.linalg.norm(
+            np.asarray(object_local_post) - np.asarray(object_local)
+        ))
+        if state_name == "CLOSE" and close_start_pos[object_key] is not None:
+            close_displacement = float(np.linalg.norm(
+                np.asarray(object_local_post) - np.asarray(close_start_pos[object_key])
+            ))
+            close_push[object_key] |= close_displacement >= 0.02
+        else:
+            close_displacement = 0.0
+        step_trace[-1].update({
+            "ee_local_post_m": [float(value) for value in ee_local_post],
+            "finger_positions_post_local_m": finger_positions_post,
+            "finger_center_post_local_m": finger_center_post,
+            "finger_gap_post_m": float(torch.linalg.norm(
+                robot.data.body_link_pos_w[0, finger_ids[0], :3]
+                - robot.data.body_link_pos_w[0, finger_ids[1], :3]
+            ).item()),
+            "gripper_joint_actual_post": [float(value) for value in joint_actual_post],
+            "gripper_joint_error_post": [
+                float(target - actual)
+                for target, actual in zip(gripper_vals, joint_actual_post)
+            ],
+            "object_local_post_m": object_local_post,
+            "object_quat_post_w": [float(value) for value in object_quat_post],
+            "object_displacement_m": object_displacement,
+            "object_delta_xy_m": float(np.linalg.norm(
+                np.asarray(object_local_post[:2]) - np.asarray(object_local[:2])
+            )),
+            "object_delta_z_m": float(object_local_post[2] - object_local[2]),
+            "close_displacement_from_start_m": close_displacement,
+            "lift_threshold_met": bool(lift_now),
+            "lift_consecutive_steps_post": lift_consecutive[object_key],
+            "ever_lifted_post": ever_lifted[object_key],
+        })
+        last_positions = {
+            f"object_{idx}": _local_position(idx) for idx in pick_objects
+        }
 
         if terminated.any() or truncated.any():
             terminal_terms = _termination_terms(env)
@@ -290,6 +591,7 @@ def collect_one_demo(
         phase_intervals.append(active_phase)
 
     failure_stage = None
+    failure_mode = None
     failure_object = None
     if not success:
         failure_object = next(
@@ -300,16 +602,32 @@ def collect_one_demo(
         if failure_object is not None:
             object_key = f"object_{failure_object}"
             if not ever_lifted[object_key]:
-                failure_stage = "LIFT"
+                if close_push[object_key]:
+                    failure_stage = "CLOSE"
+                    failure_mode = "object_displaced_during_close"
+                elif lift_object_lateral_max[object_key] > LIFT_MAX_LATERAL_DISPLACEMENT:
+                    failure_stage = "LIFT"
+                    failure_mode = "object_displaced_during_lift"
+                else:
+                    failure_stage = "LIFT"
+                    failure_mode = "lift_not_confirmed"
             elif not ever_in_basket[object_key]:
-                failure_stage = "PLACE"
+                failure_stage = lift_lost_state[object_key] or "PLACE"
+                if lift_lost_state[object_key] == "TRANSPORT":
+                    failure_mode = "object_lost_during_transport"
+                elif lift_lost_state[object_key] == "LIFT":
+                    failure_mode = "object_lost_during_lift"
+                else:
+                    failure_mode = "released_not_in_basket"
             else:
                 failure_stage = phase_intervals[-1]["state"] if phase_intervals else None
+                failure_mode = "object_left_basket_region_after_entry"
 
     metadata = {
         "seed": int(getattr(env.unwrapped.cfg, "seed", -1)),
         "object_order": list(pick_objects),
         "initial_object_positions_local_m": initial_positions,
+        "settled_object_positions_local_m": settled_positions,
         "final_object_positions_local_m": last_positions,
         "objects_in_basket": final_flags,
         "ever_in_basket": ever_in_basket,
@@ -321,7 +639,24 @@ def collect_one_demo(
         "termination_step": len(step_trace),
         "last_phase": phase_intervals[-1]["state"] if phase_intervals else None,
         "failure_stage": failure_stage,
+        "failure_mode": failure_mode,
         "failure_object": failure_object,
+        "runtime_gripper_joint_limits": gripper_limits.tolist(),
+        "runtime_gripper_close_target": close_target.detach().cpu().tolist(),
+        "finger_body_names": finger_names,
+        "finger_center_offset_base_m": finger_center_offset_b[0].detach().cpu().tolist(),
+        "lift_confirmation_steps": 5,
+        "lift_diagnostics": {
+            key: {
+                "target_lateral_max_m": lift_target_lateral_max[key],
+                "actual_lateral_max_m": lift_actual_lateral_max[key],
+                "object_lateral_max_m": lift_object_lateral_max[key],
+                "target_z_monotonic": lift_z_monotonic[key],
+                "actual_z_monotonic": lift_actual_z_monotonic[key],
+                "orientation_error_max_rad": lift_orientation_error_max[key],
+            }
+            for key in ever_lifted
+        },
         "phase_intervals": phase_intervals,
         "step_trace": step_trace,
         "terminal_reset_encountered": terminal_reset_encountered,

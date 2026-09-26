@@ -18,6 +18,8 @@ __all__ = [
     "STEPS", "STATE_ORDER",
     # geometry
     "PRE_GRASP_CLEARANCE", "GRASP_Z_OFFSET", "GRASP_Z_OFFSETS", "GRASP_LONG_AXIS",
+    "GRASP_FINGER_CENTER_OBJECTS",
+    "LIFT_MAX_TARGET_XY_STEP", "LIFT_MAX_LATERAL_DISPLACEMENT",
     "CARRY_Z", "PLACE_HEIGHT",
     "RETRACT_POS_X", "RETRACT_POS_Y",
     "DEFAULT_PLACE_QUAT_W",
@@ -41,7 +43,7 @@ EE_BODY_NAME        = "gripper_base"
 ARM_JOINT_NAMES     = ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6"]
 GRIPPER_JOINT_NAMES = ["joint7", "joint8"]
 GRIPPER_OPEN_POS    = [0.035, -0.035]   # joint7, joint8
-GRIPPER_CLOSE_POS   = [-0.020,  0.020]
+GRIPPER_CLOSE_POS   = [0.0, 0.0]
 
 # Must match ActionsCfg: scale=0.5, use_default_offset=True
 #   env_action = (joint_target - default_joint_pos) / ACTION_SCALE
@@ -70,14 +72,23 @@ STATE_ORDER = ["INIT", "PRE_GRASP", "REACH", "CLOSE", "LIFT",
 # ------------------------------------------------------------------ #
 PRE_GRASP_CLEARANCE = 0.12   # metres above object before descent
 GRASP_Z_OFFSET      = 0.09   # metres: gripper approach height above object centre
-# Object roots have different mesh heights.  Keep the banana value that already
-# works, while lowering the box/bottle approach to place the fingers around
-# their respective centres instead of contacting their top surfaces.
-GRASP_Z_OFFSETS = {1: 0.055, 2: 0.055, 3: GRASP_Z_OFFSET}
+# Vertical offset of the finger-link midpoint target from the object root.
+# Box and bottle start centered on their root; banana keeps the base-target
+# height from the previously successful expert converted through the measured
+# gripper-base-to-finger-center transform.
+GRASP_Z_OFFSETS = {1: 0.000, 2: 0.000, 3: GRASP_Z_OFFSET}
 # Asset-local long axes used to orient the jaw opening.  The first two Task-E
 # meshes are laid out along local/world Y; banana keeps the orientation that
 # passed the initial regression.
 GRASP_LONG_AXIS = {1: 1, 2: 1, 3: 0}
+# These two assets use the fingertip-center calibration. Banana retains the
+# legacy gripper-base target that has a known successful trajectory.
+GRASP_FINGER_CENTER_OBJECTS = {1, 2}
+
+# LIFT follows the case video: the target XY may correct slowly toward the
+# grasp anchor, but never jumps laterally in a single 20 ms control step.
+LIFT_MAX_TARGET_XY_STEP = 0.002
+LIFT_MAX_LATERAL_DISPLACEMENT = 0.08
 
 CARRY_Z      = TABLE_TOP_Z + 0.40   # safe carry height
 PLACE_HEIGHT = TABLE_TOP_Z + 0.15   # height at which to release into basket

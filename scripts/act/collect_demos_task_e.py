@@ -64,6 +64,10 @@ from task_e.config import (
     EE_BODY_NAME, ARM_JOINT_NAMES, GRIPPER_JOINT_NAMES,
     ACT_STIFFNESS, ACT_DAMPING, ACT_EFFORT_LIMIT, ACT_VEL_LIMIT,
     CAM_H, CAM_W, CAM_POS, CAM_ROT,
+    GRIPPER_OPEN_POS, GRIPPER_CLOSE_POS, GRASP_Z_OFFSETS, GRASP_LONG_AXIS,
+    GRASP_FINGER_CENTER_OBJECTS,
+    LIFT_MAX_TARGET_XY_STEP, LIFT_MAX_LATERAL_DISPLACEMENT,
+    CARRY_Z, PLACE_HEIGHT, STEPS, STATE_ORDER,
 )
 from task_e.collector import collect_one_demo
 
@@ -134,7 +138,12 @@ def save_traj(traj_path: str, traj_idx: int, data: dict,
             )
         metadata = data.get("metadata", {})
         for key, value in metadata.items():
-            if isinstance(value, (dict, list, tuple)):
+            if value is None:
+                # HDF5 attributes have no native None/object dtype.  Keep the
+                # distinction between an unset optional diagnostic and an
+                # empty string in a JSON-compatible representation.
+                value = "null"
+            elif isinstance(value, (dict, list, tuple)):
                 value = json.dumps(value, separators=(",", ":"))
             grp.attrs[key] = value
 
@@ -180,6 +189,21 @@ def main() -> None:
         "num_requested": int(args_cli.num_demos),
         "save_images": bool(args_cli.save_images),
         "success_filter": bool(args_cli.only_success),
+        "expert_parameters": {
+            "gripper_open_pos": GRIPPER_OPEN_POS,
+            "gripper_close_pos_configured": GRIPPER_CLOSE_POS,
+            "grasp_z_offsets_finger_center_m": GRASP_Z_OFFSETS,
+            "grasp_long_axis": GRASP_LONG_AXIS,
+            "grasp_finger_center_objects": sorted(GRASP_FINGER_CENTER_OBJECTS),
+            "lift_max_target_xy_step_m": LIFT_MAX_TARGET_XY_STEP,
+            "lift_max_lateral_displacement_m": LIFT_MAX_LATERAL_DISPLACEMENT,
+            "carry_z": CARRY_Z,
+            "place_height": PLACE_HEIGHT,
+            "state_order": STATE_ORDER,
+            "state_steps": STEPS,
+            "ik_lambda": 0.05,
+            "ik_max_joint_delta": 0.2,
+        },
     }
     traj_path, _ = init_output(args_cli.output_dir, collection_metadata)
     rng = np.random.default_rng(args_cli.seed)
