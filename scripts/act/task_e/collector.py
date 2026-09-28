@@ -270,6 +270,11 @@ def collect_one_demo(
     lift_z_monotonic: dict[str, bool] = {f"object_{obj_idx}": True for obj_idx in pick_objects}
     lift_actual_z_monotonic: dict[str, bool] = {f"object_{obj_idx}": True for obj_idx in pick_objects}
     lift_orientation_error_max: dict[str, float] = {f"object_{obj_idx}": 0.0 for obj_idx in pick_objects}
+    place_prev_target_w: dict[str, torch.Tensor | None] = {
+        f"object_{obj_idx}": None for obj_idx in pick_objects
+    }
+    place_target_lateral_max: dict[str, float] = {f"object_{obj_idx}": 0.0 for obj_idx in pick_objects}
+    place_target_z_monotonic: dict[str, bool] = {f"object_{obj_idx}": True for obj_idx in pick_objects}
     step_trace: list[dict] = []
     phase_intervals: list[dict] = []
     active_phase: dict | None = None
@@ -441,6 +446,30 @@ def collect_one_demo(
             lift_orientation_error_max[object_key] = max(
                 lift_orientation_error_max[object_key], step_trace[-1]["lift_orientation_error"]
             )
+        elif state_name == "PLACE":
+            # PLACE is deliberately a one-dimensional descent.  The state
+            # machine supplies a fixed basket XY and a monotonic Z waypoint;
+            # keep that target explicit in the trace for dataset acceptance.
+            ee_pos_base_des = ee_pos_des.unsqueeze(0)
+            place_target = ee_pos_base_des[0].clone()
+            previous_place_target = place_prev_target_w[object_key]
+            if previous_place_target is not None:
+                place_delta = place_target - previous_place_target
+                place_target_lateral_max[object_key] = max(
+                    place_target_lateral_max[object_key],
+                    float(torch.linalg.norm(place_delta[:2]).item()),
+                )
+                place_target_z_monotonic[object_key] &= bool(place_delta[2].item() <= 1e-6)
+                step_trace[-1]["place_target_delta_xy_m"] = float(
+                    torch.linalg.norm(place_delta[:2]).item()
+                )
+                step_trace[-1]["place_target_delta_z_m"] = float(place_delta[2].item())
+                step_trace[-1]["place_z_monotonic"] = bool(place_delta[2].item() <= 1e-6)
+            else:
+                step_trace[-1]["place_target_delta_xy_m"] = 0.0
+                step_trace[-1]["place_target_delta_z_m"] = 0.0
+                step_trace[-1]["place_z_monotonic"] = True
+            place_prev_target_w[object_key] = place_target
         else:
             ee_pos_base_des = ee_pos_des.unsqueeze(0)
         step_trace[-1]["ee_base_target_local_m"] = [
@@ -634,6 +663,7 @@ def collect_one_demo(
         "ever_lifted": ever_lifted,
         "completed_object_count": int(sum(final_flags.values())),
         "ever_completed_object_count": int(sum(ever_in_basket.values())),
+        "observation_type": "absolute_joint_position",
         "success": success,
         "termination_reason": termination_reason,
         "termination_step": len(step_trace),
@@ -643,6 +673,8 @@ def collect_one_demo(
         "failure_object": failure_object,
         "runtime_gripper_joint_limits": gripper_limits.tolist(),
         "runtime_gripper_close_target": close_target.detach().cpu().tolist(),
+        "default_joint_pos": default_jpos[0].detach().cpu().tolist(),
+        "action_scale": ACTION_SCALE,
         "finger_body_names": finger_names,
         "finger_center_offset_base_m": finger_center_offset_b[0].detach().cpu().tolist(),
         "lift_confirmation_steps": 5,
@@ -654,6 +686,13 @@ def collect_one_demo(
                 "target_z_monotonic": lift_z_monotonic[key],
                 "actual_z_monotonic": lift_actual_z_monotonic[key],
                 "orientation_error_max_rad": lift_orientation_error_max[key],
+            }
+            for key in ever_lifted
+        },
+        "place_diagnostics": {
+            key: {
+                "target_lateral_max_m": place_target_lateral_max[key],
+                "target_z_monotonic": place_target_z_monotonic[key],
             }
             for key in ever_lifted
         },

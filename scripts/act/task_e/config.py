@@ -100,9 +100,10 @@ DEFAULT_PLACE_QUAT_W = [0.0, 1.0, 0.0, 0.0]   # top-down orientation (w,x,y,z)
 # ------------------------------------------------------------------ #
 # Object spawn regions
 #
-#   object_1  Y ∈ [0.21, 0.28]   (top band)
-#   object_2  Y ∈ [0.12, 0.19]   (middle band)
-#   object_3  Y ∈ [0.03, 0.10]   (bottom band, closest to basket)
+# These ranges mirror the Task E evaluation randomisation in env_cfg.py.
+#   object_1  Y ∈ [0.25, 0.29]   (top band)
+#   object_2  Y ∈ [0.14, 0.20]   (middle band)
+#   object_3  Y ∈ [0.03, 0.09]   (bottom band, closest to basket)
 # ------------------------------------------------------------------ #
 OBJ_SPAWN_X_MIN = TABLE_CENTER_X - 0.10
 OBJ_SPAWN_X_MAX = TABLE_CENTER_X + 0.10
@@ -110,9 +111,9 @@ OBJ_SPAWN_Z     = TABLE_TOP_Z + 0.03
 
 # Per-object Y-bands: {object_idx: (y_min, y_max)}
 OBJ_SPAWN_Y_BANDS = {
-    1: (TABLE_CENTER_Y + 0.20, TABLE_CENTER_Y + 0.25),
-    2: (TABLE_CENTER_Y + 0.12, TABLE_CENTER_Y + 0.19),
-    3: (TABLE_CENTER_Y + 0.03, TABLE_CENTER_Y + 0.10),
+    1: (TABLE_CENTER_Y + 0.25, TABLE_CENTER_Y + 0.29),
+    2: (TABLE_CENTER_Y + 0.14, TABLE_CENTER_Y + 0.20),
+    3: (TABLE_CENTER_Y + 0.03, TABLE_CENTER_Y + 0.09),
 }
 
 # Per-object 2-D bounding-box half-extents (metres, world XY plane, scale=1).

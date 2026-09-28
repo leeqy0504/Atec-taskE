@@ -87,8 +87,8 @@ def run() -> None:
     (output_dir / "raw_logs").mkdir(exist_ok=True)
 
     policy_path = Path(os.environ.get("ATEC_TASK_E_POLICY") or ROOT / "atec_robot_model/baseline/act/policy.pt").resolve()
-    if policy_path != (ROOT / "atec_robot_model/baseline/act/policy.pt").resolve():
-        raise ValueError("Baseline experiment requires the original policy.pt; unset ATEC_TASK_E_POLICY")
+    if not policy_path.is_file():
+        raise FileNotFoundError(f"Policy checkpoint not found: {policy_path}")
 
     cfg = TaskEEnvPiperCfg(seed=args.seed)
     cfg.scene.num_envs = 1
@@ -100,7 +100,11 @@ def run() -> None:
         "task": "ATEC-TaskE-Piper",
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "command": " ".join(sys.argv),
-        "policy": {"path": str(policy_path), "sha256": sha256(policy_path)},
+        "policy": {
+            "path": str(policy_path),
+            "sha256": sha256(policy_path),
+            "kind": "original_baseline" if policy_path == (ROOT / "atec_robot_model/baseline/act/policy.pt").resolve() else "trained_checkpoint",
+        },
         "evaluation_code": {"path": str(Path(__file__).resolve()), "sha256": sha256(Path(__file__))},
         "environment_code": {
             "path": str(ROOT / "source/atec_rl_lab/atec_rl_lab/tasks/task_e/env_cfg.py"),

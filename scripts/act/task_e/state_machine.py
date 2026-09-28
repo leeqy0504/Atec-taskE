@@ -193,7 +193,13 @@ class PickPlaceStateMachine:
         elif s == "TRANSPORT":
             return torch.tensor([BASKET_CENTER_X, BASKET_CENTER_Y, CARRY_Z], device=d), "close"
         elif s == "PLACE":
-            return torch.tensor([BASKET_CENTER_X, BASKET_CENTER_Y, PLACE_HEIGHT], device=d), "close"
+            # Keep the basket XY fixed and descend monotonically from the
+            # carry height.  The preceding TRANSPORT state already places the
+            # gripper above the basket, so PLACE should not introduce a new
+            # horizontal correction while lowering the object.
+            alpha = min((self._count + 1) / max(STEPS["PLACE"], 1), 1.0)
+            place_z = CARRY_Z + alpha * (PLACE_HEIGHT - CARRY_Z)
+            return torch.tensor([BASKET_CENTER_X, BASKET_CENTER_Y, place_z], device=d), "close"
         elif s == "OPEN":
             return torch.tensor([BASKET_CENTER_X, BASKET_CENTER_Y, PLACE_HEIGHT], device=d), "open"
         elif s == "LIFT_RETRACT":

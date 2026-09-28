@@ -199,6 +199,7 @@ def main() -> None:
             "lift_max_lateral_displacement_m": LIFT_MAX_LATERAL_DISPLACEMENT,
             "carry_z": CARRY_Z,
             "place_height": PLACE_HEIGHT,
+            "place_mode": "fixed_basket_xy_monotonic_z_descent",
             "state_order": STATE_ORDER,
             "state_steps": STEPS,
             "ik_lambda": 0.05,

@@ -3,6 +3,8 @@ ALGO_NAME = 'BC_ACT'
 import os
 import random
 import time
+import hashlib
+import json
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Optional
@@ -88,6 +90,8 @@ class Args:
     """frequency of saving model checkpoints"""
     num_dataload_workers: int = 0
     """number of DataLoader worker processes"""
+    run_root: str = "runs"
+    """Root directory for checkpoints, TensorBoard logs, and run metadata."""
 
 
 class DemoDataset_ACT(Dataset):
@@ -272,15 +276,23 @@ def kl_divergence(mu, logvar):
     return total_kld, dim_kld, mean_kld
 
 
-def save_ckpt(run_name: str, tag: str) -> None:
-    os.makedirs(f'runs/{run_name}/checkpoints', exist_ok=True)
+def save_ckpt(run_dir: str, tag: str) -> None:
+    os.makedirs(f'{run_dir}/checkpoints', exist_ok=True)
     ema.copy_to(ema_agent.parameters())
     torch.save({
         'norm_stats': dataset.norm_stats,
         'agent':      agent.state_dict(),
         'ema_agent':  ema_agent.state_dict(),
-    }, f'runs/{run_name}/checkpoints/{tag}.pt')
-    print(f'[INFO] Saved checkpoint: runs/{run_name}/checkpoints/{tag}.pt')
+    }, f'{run_dir}/checkpoints/{tag}.pt')
+    print(f'[INFO] Saved checkpoint: {run_dir}/checkpoints/{tag}.pt')
+
+
+def sha256_file(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, 'rb') as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            digest.update(block)
+    return digest.hexdigest()
 
 if __name__ == '__main__':
     args = tyro.cli(Args)
@@ -290,6 +302,8 @@ if __name__ == '__main__':
         run_name = f"{args.exp_name}__{args.seed}__{int(time.time())}"
     else:
         run_name = args.exp_name
+
+    run_dir = os.path.abspath(os.path.join(args.run_root, run_name))
 
     # seeding
     random.seed(args.seed)
@@ -308,6 +322,34 @@ if __name__ == '__main__':
     )
     if args.num_demos is None:
         args.num_demos = dataset.num_traj
+
+    os.makedirs(run_dir, exist_ok=True)
+    dataset_sha256 = sha256_file(args.demo_path)
+    run_metadata = {
+        'algorithm': ALGO_NAME,
+        'args': vars(args),
+        'dataset': {
+            'path': os.path.abspath(args.demo_path),
+            'sha256': dataset_sha256,
+            'num_trajectories': dataset.num_traj,
+            'timesteps': len(dataset.slices),
+            'state_dim': dataset.state_dim,
+            'action_dim': dataset.act_dim,
+            'has_images': dataset.has_images,
+        },
+        'runtime': {
+            'torch_version': torch.__version__,
+            'cuda_version': torch.version.cuda,
+            'device': str(device),
+            'gpu': torch.cuda.get_device_name(0) if device.type == 'cuda' else None,
+        },
+        'normalization': {
+            key: value.detach().cpu().tolist()
+            for key, value in dataset.norm_stats.items()
+        },
+    }
+    with open(os.path.join(run_dir, 'run_metadata.json'), 'w') as stream:
+        json.dump(run_metadata, stream, indent=2)
 
     sampler       = RandomSampler(dataset, replacement=False)
     batch_sampler = BatchSampler(sampler, batch_size=args.batch_size, drop_last=True)
@@ -332,7 +374,7 @@ if __name__ == '__main__':
             group='ACT',
             tags=['act'],
         )
-    writer = SummaryWriter(f'runs/{run_name}')
+    writer = SummaryWriter(run_dir)
     writer.add_text(
         'hyperparameters',
         '|param|value|\n|-|-|\n' +
@@ -393,11 +435,11 @@ if __name__ == '__main__':
 
             if loss_val < best_loss:
                 best_loss = loss_val
-                save_ckpt(run_name, 'best_loss')
+                save_ckpt(run_dir, 'best_loss')
 
         if args.save_freq > 0 and cur_iter % args.save_freq == 0 and cur_iter > 0:
-            save_ckpt(run_name, str(cur_iter))
+            save_ckpt(run_dir, str(cur_iter))
 
-    save_ckpt(run_name, 'final')
+    save_ckpt(run_dir, 'final')
     writer.close()
-    print(f'[INFO] Training done. Run: runs/{run_name}')
+    print(f'[INFO] Training done. Run: {run_dir}')
