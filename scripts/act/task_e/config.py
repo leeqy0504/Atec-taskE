@@ -64,6 +64,17 @@ STEPS: dict[str, int] = {
     "LIFT_RETRACT":  80,
     "RETRACT":       80,
 }
+STEP_PROFILES: dict[str, dict[str, int]] = {
+    "stable": dict(STEPS),
+    # Keep contact-sensitive phases unchanged.  Only remove redundant waits
+    # before the robot starts the approach, so the learned policy sees more
+    # phase transitions per trajectory without changing grasp geometry.
+    "compact": {
+        **STEPS,
+        "INIT": 60,
+        "PRE_GRASP": 160,
+    },
+}
 STATE_ORDER = ["INIT", "PRE_GRASP", "REACH", "CLOSE", "LIFT",
                "TRANSPORT", "PLACE", "OPEN", "LIFT_RETRACT", "RETRACT"]
 

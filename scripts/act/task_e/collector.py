@@ -116,6 +116,8 @@ def collect_one_demo(
     default_jpos: torch.Tensor,
     rng:         np.random.Generator,
     camera=None,
+    steps: dict[str, int] | None = None,
+    expert_profile: str = "stable",
 ) -> dict:
     """Run one full episode and return recorded data plus terminal metadata.
 
@@ -178,7 +180,8 @@ def collect_one_demo(
 
     # Create the state machine before settling.  We retain the reset pose and
     # conditionally refresh it below if settling materially rolls an object.
-    sm = PickPlaceStateMachine(pick_objects, device)
+    active_steps = dict(steps or STEPS)
+    sm = PickPlaceStateMachine(pick_objects, device, active_steps)
     pre_settle_poses = {
         obj_idx: env.unwrapped.scene.rigid_objects[f"object_{obj_idx}"]
         .data.root_state_w[0].clone()
@@ -408,7 +411,7 @@ def collect_one_demo(
             target_xy = target_xy + xy_step
             lift_target_xy_w[object_key] = target_xy
             lift_step_count[object_key] += 1
-            alpha = min(lift_step_count[object_key] / max(STEPS["LIFT"], 1), 1.0)
+            alpha = min(lift_step_count[object_key] / max(active_steps["LIFT"], 1), 1.0)
             start_z = lift_start_z_w[object_key]
             assert start_z is not None
             lift_target_z = start_z + alpha * (CARRY_Z - start_z)
@@ -698,6 +701,8 @@ def collect_one_demo(
         },
         "phase_intervals": phase_intervals,
         "step_trace": step_trace,
+        "expert_profile": expert_profile,
+        "state_steps": active_steps,
         "terminal_reset_encountered": terminal_reset_encountered,
         "cross_reset": False,
     }

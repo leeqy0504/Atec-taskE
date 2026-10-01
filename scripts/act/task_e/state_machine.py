@@ -97,9 +97,11 @@ class PickPlaceStateMachine:
                        TRANSPORT → PLACE → OPEN → RETRACT → (next object or done)
     """
 
-    def __init__(self, object_indices: list[int], device: str):
+    def __init__(self, object_indices: list[int], device: str,
+                 steps: dict[str, int] | None = None):
         self._obj_indices = object_indices
         self._device      = device
+        self._steps       = dict(steps or STEPS)
         self._grasp_quat_cache: dict[int, torch.Tensor] = {}
         self.reset()
 
@@ -143,7 +145,7 @@ class PickPlaceStateMachine:
         ee_quat         = self._get_target_quat(s, d)
 
         self._count += 1
-        if self._count >= STEPS[s]:
+        if self._count >= self._steps[s]:
             self._count = 0
             if s == "RETRACT":
                 self._ptr          += 1
@@ -197,7 +199,7 @@ class PickPlaceStateMachine:
             # carry height.  The preceding TRANSPORT state already places the
             # gripper above the basket, so PLACE should not introduce a new
             # horizontal correction while lowering the object.
-            alpha = min((self._count + 1) / max(STEPS["PLACE"], 1), 1.0)
+            alpha = min((self._count + 1) / max(self._steps["PLACE"], 1), 1.0)
             place_z = CARRY_Z + alpha * (PLACE_HEIGHT - CARRY_Z)
             return torch.tensor([BASKET_CENTER_X, BASKET_CENTER_Y, place_z], device=d), "close"
         elif s == "OPEN":

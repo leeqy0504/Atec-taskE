@@ -42,3 +42,7 @@ def add_collect_demo_args(parser) -> None:
         "--max_attempts", type=int, default=None,
         help="Maximum collection attempts; defaults to num_demos * 20.",
     )
+    parser.add_argument(
+        "--expert_profile", choices=("stable", "compact"), default="stable",
+        help="State-machine timing profile. compact shortens only initial approach waits.",
+    )

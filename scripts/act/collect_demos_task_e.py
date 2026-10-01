@@ -67,7 +67,7 @@ from task_e.config import (
     GRIPPER_OPEN_POS, GRIPPER_CLOSE_POS, GRASP_Z_OFFSETS, GRASP_LONG_AXIS,
     GRASP_FINGER_CENTER_OBJECTS,
     LIFT_MAX_TARGET_XY_STEP, LIFT_MAX_LATERAL_DISPLACEMENT,
-    CARRY_Z, PLACE_HEIGHT, STEPS, STATE_ORDER,
+    CARRY_Z, PLACE_HEIGHT, STEPS, STEP_PROFILES, STATE_ORDER,
 )
 from task_e.collector import collect_one_demo
 
@@ -150,6 +150,7 @@ def save_traj(traj_path: str, traj_idx: int, data: dict,
 
 def main() -> None:
     pick_objects = sorted(set(args_cli.pick_objects))
+    active_steps = dict(STEP_PROFILES[args_cli.expert_profile])
     need_camera = args_cli.save_video or args_cli.save_images
 
     if any(obj not in (1, 2, 3) for obj in pick_objects):
@@ -201,7 +202,8 @@ def main() -> None:
             "place_height": PLACE_HEIGHT,
             "place_mode": "fixed_basket_xy_monotonic_z_descent",
             "state_order": STATE_ORDER,
-            "state_steps": STEPS,
+            "state_steps": active_steps,
+            "expert_profile": args_cli.expert_profile,
             "ik_lambda": 0.05,
             "ik_max_joint_delta": 0.2,
         },
@@ -223,6 +225,8 @@ def main() -> None:
             default_jpos=default_jpos,
             rng=rng,
             camera=camera,
+            steps=active_steps,
+            expert_profile=args_cli.expert_profile,
         )
         if data is None:
             print("[WARN] Collector returned no data — skipping.")

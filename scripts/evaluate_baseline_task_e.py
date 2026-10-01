@@ -19,6 +19,12 @@ parser.add_argument("--seed", type=int, default=1000)
 parser.add_argument("--max-steps", type=int, default=1500)
 parser.add_argument("--output-dir", type=Path, default=ROOT / "logs" / "baseline_act" / "seed_1000")
 parser.add_argument("--video-stride", type=int, default=5)
+parser.add_argument(
+    "--temporal-agg",
+    action=argparse.BooleanOptionalAction,
+    default=None,
+    help="Override ACT temporal aggregation for this evaluation only.",
+)
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
 if args.max_steps < 1 or args.video_stride < 1:
@@ -94,6 +100,9 @@ def run() -> None:
     cfg.scene.num_envs = 1
     cfg.sim.device = args.device
     solution = AlgSolution()
+    if args.temporal_agg is not None:
+        solution.temporal_agg = bool(args.temporal_agg)
+        solution.reset()
     cfg = apply_safe_action_spec(cfg, solution.get_action_spec())
     step_dt = cfg.sim.dt * cfg.decimation
     manifest = {
@@ -106,6 +115,11 @@ def run() -> None:
             "kind": "original_baseline" if policy_path == (ROOT / "atec_robot_model/baseline/act/policy.pt").resolve() else "trained_checkpoint",
         },
         "evaluation_code": {"path": str(Path(__file__).resolve()), "sha256": sha256(Path(__file__))},
+        "solution_code": {
+            "path": str(ROOT / ("demo/solution_rgb.py" if os.environ.get("ATEC_TASK_E_POLICY_MODE", "act").strip().lower() == "rgb" else "demo/solution_act.py")),
+            "sha256": sha256(ROOT / ("demo/solution_rgb.py" if os.environ.get("ATEC_TASK_E_POLICY_MODE", "act").strip().lower() == "rgb" else "demo/solution_act.py")),
+            "mode": os.environ.get("ATEC_TASK_E_POLICY_MODE", "act").strip().lower(),
+        },
         "environment_code": {
             "path": str(ROOT / "source/atec_rl_lab/atec_rl_lab/tasks/task_e/env_cfg.py"),
             "sha256": sha256(ROOT / "source/atec_rl_lab/atec_rl_lab/tasks/task_e/env_cfg.py"),
@@ -122,6 +136,7 @@ def run() -> None:
         "basket_half_y_m": BASKET_SUCCESS_HALF_Y,
         "table_top_z_m": TABLE_TOP_Z,
         "video_stride": args.video_stride,
+        "temporal_agg": solution.temporal_agg,
         "video_fps": round(1 / (step_dt * args.video_stride)),
         "torch_version": torch.__version__,
         "cuda_version": torch.version.cuda,
@@ -138,9 +153,17 @@ def run() -> None:
     termination_terms = {}
     final_positions = {}
     max_in_basket = 0
+    first_in_basket_step = None
+    first_stall_step = None
+    policy_start_step = None
+    stationary_steps = 0
+    previous_qpos = None
+    previous_in_basket = None
+    trace = None
     try:
         env = gym.make("ATEC-TaskE-Piper", cfg=cfg)
         obs, _ = env.reset(seed=args.seed)
+        solution.reset()
         initial_positions = local_object_positions(env)
         manifest["initial_object_positions_local_m"] = initial_positions
         save_json(output_dir / "manifest.json", manifest)
@@ -148,6 +171,7 @@ def run() -> None:
         writer = imageio.get_writer(str(video_path), fps=manifest["video_fps"], codec="libx264", quality=6)
         writer.append_data(frame_from_obs(obs))
         print(f"[BASELINE] seed={args.seed} initial_positions={initial_positions}", flush=True)
+        trace = (output_dir / "steps.jsonl").open("w", encoding="utf-8")
 
         while steps < args.max_steps and app.is_running():
             with torch.inference_mode():
@@ -156,6 +180,13 @@ def run() -> None:
                     end_reason = "giveup"
                     break
                 action = torch.as_tensor(response["action"], dtype=torch.float32, device=env.unwrapped.device)
+                if action.shape != (1, 8) or not bool(torch.isfinite(action).all()):
+                    end_reason = "invalid_action"
+                    trace.write(json.dumps({"step": steps, "reason": end_reason, "action": response["action"]}) + "\n")
+                    break
+                control_phase = "home" if not solution._home_done or solution._ts == 0 else "act"
+                if control_phase == "act" and policy_start_step is None:
+                    policy_start_step = steps + 1
                 obs, reward, terminated, truncated, info = env.step(action)
                 steps += 1
                 score += float(reward[0].item()) / step_dt
@@ -168,7 +199,36 @@ def run() -> None:
                     end_reason = "|".join(name for name, active in termination_terms.items() if active) or "unknown_termination"
                 else:
                     final_positions = local_object_positions(env)
-                    max_in_basket = max(max_in_basket, sum(map(inside_basket, final_positions.values())))
+                    in_basket = {name: inside_basket(pos) for name, pos in final_positions.items()}
+                    basket_count = sum(in_basket.values())
+                    max_in_basket = max(max_in_basket, basket_count)
+                    if basket_count and first_in_basket_step is None:
+                        first_in_basket_step = steps
+                    qpos = env.unwrapped.scene["robot"].data.joint_pos[0].detach().cpu().tolist()
+                    qvel = env.unwrapped.scene["robot"].data.joint_vel[0].detach().cpu().tolist()
+                    if control_phase == "act" and previous_qpos is not None:
+                        moved = max(abs(a - b) for a, b in zip(qpos, previous_qpos)) > 0.002
+                        stationary_steps = 0 if moved or in_basket != previous_in_basket else stationary_steps + 1
+                        if stationary_steps >= 150 and first_stall_step is None:
+                            first_stall_step = steps - 149
+                    else:
+                        stationary_steps = 0
+                    previous_qpos = qpos
+                    previous_in_basket = in_basket
+                trace.write(json.dumps({
+                    "step": steps,
+                    "simulation_time_s": round(steps * step_dt, 4),
+                    "control_phase": control_phase,
+                    "action": action[0].detach().cpu().tolist(),
+                    "joint_position": None if done else qpos,
+                    "joint_velocity": None if done else qvel,
+                    "object_positions_local_m": None if done else final_positions,
+                    "objects_in_basket": None if done else in_basket,
+                    "basket_count": None if done else basket_count,
+                    "stationary_steps": stationary_steps,
+                    "termination_reason": end_reason if done else None,
+                    "controller_diagnostics": getattr(solution, "last_diagnostics", None),
+                }, separators=(",", ":")) + "\n")
                 if not done and steps % args.video_stride == 0:
                     writer.append_data(frame_from_obs(obs))
                 if steps % 100 == 0 or done:
@@ -188,8 +248,13 @@ def run() -> None:
             "wall_time_s": round(time.monotonic() - start_wall, 2),
             "score": round(score, 4),
             "max_simultaneous_objects_in_basket": max_in_basket,
+            "policy_start_step": policy_start_step,
+            "first_in_basket_step": first_in_basket_step,
+            "first_stall_step": first_stall_step,
+            "stall_definition": "150 consecutive ACT steps with max joint delta <= 0.002 rad and unchanged basket state",
             "last_observed_object_positions_local_m": final_positions,
             "video": str(video_path),
+            "step_trace": str(output_dir / "steps.jsonl"),
         }
         with (output_dir / "episodes.jsonl").open("w", encoding="utf-8") as stream:
             stream.write(json.dumps(result, ensure_ascii=False) + "\n")
@@ -205,6 +270,8 @@ def run() -> None:
         })
         print(f"[BASELINE] result={json.dumps(result, ensure_ascii=False)}", flush=True)
     finally:
+        if trace is not None:
+            trace.close()
         if writer is not None:
             writer.close()
         if env is not None:

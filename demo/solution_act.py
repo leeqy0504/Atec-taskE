@@ -116,18 +116,29 @@ class AlgSolution:
         norm_stats = ckpt["norm_stats"]
         state_dim  = norm_stats["state_mean"].shape[-1]
         act_dim    = norm_stats["action_mean"].shape[-1]
+        self.act_dim = int(act_dim)
+        checkpoint_meta = ckpt.get("metadata", {})
+        self.context_mode = checkpoint_meta.get(
+            "context_mode", "legacy_qpos" if state_dim == 8 else "temporal_v1"
+        )
+        self.progress_horizon = int(checkpoint_meta.get("progress_horizon", 2850))
+        checkpoint_num_queries = int(checkpoint_meta.get("num_queries", 30))
         weight_key = "ema_agent"# if use_ema and "ema_agent" in ckpt else "agent"
 
         train_args = Args()
-        train_args.num_queries = 30
+        train_args.num_queries = checkpoint_num_queries
         train_args.include_rgb = any("backbone" in k for k in ckpt[weight_key].keys())
 
         self.agent = Agent(state_dim, act_dim, train_args).to(self.device)
         self.agent.load_state_dict(ckpt[weight_key])
         self.agent.eval()
 
-        self.num_queries  = 30
-        self.temporal_agg = True
+        self.num_queries  = checkpoint_num_queries
+        temporal_agg_env = os.environ.get("ATEC_TASK_E_TEMPORAL_AGG")
+        if temporal_agg_env is None:
+            self.temporal_agg = True
+        else:
+            self.temporal_agg = temporal_agg_env.strip().lower() not in {"0", "false", "off", "no"}
         self._k           = 0.01
 
         self.state_mean = norm_stats["state_mean"].to(self.device)   # (1, state_dim)
@@ -144,12 +155,11 @@ class AlgSolution:
         self._ts: int = 0
         self._action_history: deque = deque(maxlen=self.num_queries)
         self._last_action_seq: torch.Tensor | None = None
+        self._previous_action_context: torch.Tensor | None = None
 
 
-        startup_zero_steps = 25
-        home_qpos_tolerance = 0.10
-        home_kp = 2.0
-        home_kd = 0.2
+        home_qpos_tolerance = 0.02
+        home_qvel_tolerance = 0.10
         home_hold_steps = 5
 
         self.teleop_home_joint_pos = torch.tensor(
@@ -158,19 +168,22 @@ class AlgSolution:
             device=self.device,
         )
 
-        self._startup_zero_steps = max(0, int(startup_zero_steps))
         self._home_qpos_tolerance = float(home_qpos_tolerance)
-        self._home_kp = float(home_kp)
-        self._home_kd = float(home_kd)
+        self._home_qvel_tolerance = float(home_qvel_tolerance)
         self._home_hold_steps = max(0, int(home_hold_steps))
-
-        self._startup_step = 0
-        self._home_stable_steps = 0
-        self._home_done = False
+        self.reset()
 
     
     def get_action_spec(self) -> dict[str, dict[str, Any]] | None:
         return {}
+
+    def reset(self) -> None:
+        self._ts = 0
+        self._action_history.clear()
+        self._last_action_seq = None
+        self._home_stable_steps = 0
+        self._home_done = False
+        self._previous_action_context = None
 
     def _compute_home_action(self, proprio):
         joint_pos_rel = proprio[:, self._QPOS_SLICE]
@@ -178,20 +191,14 @@ class AlgSolution:
         qpos = joint_pos_rel + self.default_joint_pos
         qerr = self.teleop_home_joint_pos - qpos
 
-        within_tolerance = torch.all(torch.abs(qerr) <= self._home_qpos_tolerance, dim=1)
-        self._home_stable_steps = self._home_stable_steps + 1 if bool(torch.all(within_tolerance)) else 0
-
-        # PD in joint space; action scale in env is 0.5 (use_default_offset=True).
-        u = self._home_kp * qerr - self._home_kd * joint_vel_rel
-        action = torch.clamp(u / 0.5, -1.0, 1.0)
-
-        if bool(torch.all(within_tolerance)):
-            action = torch.zeros_like(action)
-
-        home_reached = bool(
-            torch.all(within_tolerance)
+        settled = torch.all(torch.abs(qerr) <= self._home_qpos_tolerance, dim=1) & torch.all(
+            torch.abs(joint_vel_rel) <= self._home_qvel_tolerance, dim=1
         )
-        return action, home_reached
+        self._home_stable_steps = self._home_stable_steps + 1 if bool(torch.all(settled)) else 0
+
+        # The environment interprets an action as a position target offset from default.
+        action = (self.teleop_home_joint_pos - self.default_joint_pos) / 0.5
+        return action.expand(proprio.shape[0], -1), self._home_stable_steps >= self._home_hold_steps
 
 
     def predicts(self, obs, current_score):
@@ -200,12 +207,7 @@ class AlgSolution:
 
         proprio = obs["proprio"].to(self.device)              # (num_envs, 24)
 
-        # Stage 1: output zero actions for the first few steps.
-        if self._startup_step < self._startup_zero_steps:
-            self._startup_step += 1
-            return {'action': torch.zeros((proprio.shape[0], self.agent.act_dim)).numpy().tolist(), 'giveup': False}
-
-        # Stage 2: move to teleop_home using only observations.
+        # Hold the expert's home pose until the observed joints settle there.
         if not self._home_done:
             home_action, home_reached = self._compute_home_action(proprio)
             if home_reached:
@@ -213,12 +215,37 @@ class AlgSolution:
                 self._ts = 0
                 self._action_history.clear()
                 self._last_action_seq = None
+                self._previous_action_context = None
             return {'action': home_action.cpu().numpy().tolist(), 'giveup': False}
 
-        # Recover absolute joint positions from relative obs.
+        # Recover absolute joint positions from relative obs.  New temporal
+        # checkpoints consume the same derived context used by training:
+        # qpos, qvel, previous environment action, and normalized progress.
         joint_pos_rel = proprio[:, self._QPOS_SLICE]          # (num_envs, 8)
         qpos  = joint_pos_rel + self.default_joint_pos        # (num_envs, 8)
-        state = (qpos - self.state_mean) / self.state_std     # (num_envs, 8)
+        if self.context_mode == "temporal_v1":
+            qvel = proprio[:, self._QVEL_SLICE]
+            if self._previous_action_context is None:
+                previous_action = torch.zeros(
+                    (proprio.shape[0], self.act_dim), dtype=proprio.dtype, device=self.device
+                )
+            else:
+                previous_action = self._previous_action_context.expand(proprio.shape[0], -1)
+            progress = torch.full(
+                (proprio.shape[0], 1),
+                min(float(self._ts) / float(max(self.progress_horizon - 1, 1)), 1.0),
+                dtype=proprio.dtype,
+                device=self.device,
+            )
+            raw_state = torch.cat((qpos, qvel, previous_action, progress), dim=1)
+        else:
+            raw_state = qpos
+        if raw_state.shape[1] != self.state_mean.shape[-1]:
+            raise RuntimeError(
+                f"Checkpoint expects state_dim={self.state_mean.shape[-1]}, "
+                f"but constructed context has state_dim={raw_state.shape[1]}"
+            )
+        state = (raw_state - self.state_mean) / self.state_std
         model_obs = {"state": state}
 
         if self.agent.include_rgb:
@@ -258,8 +285,11 @@ class AlgSolution:
                 dim=1,
             )  # (num_envs, n, act_dim)
 
-            # Highest weight at index 0 (oldest), matching evaluate_task_e.py convention.
-            exp_weights = torch.exp(-self._k * torch.arange(n, device=self.device))
+            # Prefer the newest observation's prediction.  Older plans were
+            # generated before the current state transition and can otherwise
+            # hold the controller at a stale phase boundary.
+            age = torch.arange(n - 1, -1, -1, device=self.device)
+            exp_weights = torch.exp(-self._k * age)
             exp_weights = (exp_weights / exp_weights.sum()).unsqueeze(0).unsqueeze(-1)
             raw_action = (actions_for_curr * exp_weights).sum(dim=1)   # (num_envs, act_dim)
         else:
@@ -267,5 +297,7 @@ class AlgSolution:
 
         # Denormalise → env action format
         action = raw_action * self.act_std + self.act_mean
+        if self.context_mode == "temporal_v1":
+            self._previous_action_context = action.detach().clone()
         self._ts += 1
         return {'action': action.tolist(), 'giveup': False}
