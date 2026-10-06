@@ -70,6 +70,47 @@ def local_object_positions(env) -> dict[str, list[float]]:
     }
 
 
+def robot_diagnostics(env) -> dict:
+    """Return Isaac's measured end-effector and joint-limit state.
+
+    The RGB controller has its own FK model, so this records the simulator
+    frame separately instead of treating the controller's FK as ground truth.
+    """
+    robot = env.unwrapped.scene["robot"]
+    body_names = list(robot.body_names)
+    ee_idx = body_names.index("gripper_base")
+    origin = env.unwrapped.scene.env_origins[0]
+    ee_pos = robot.data.body_pos_w[0, ee_idx, :3] - origin
+    ee_quat = robot.data.body_quat_w[0, ee_idx]
+    finger_indices = [
+        idx for name, idx in zip(body_names, range(len(body_names)))
+        if name in {"link7", "link8"}
+    ]
+    finger_positions = robot.data.body_pos_w[0, finger_indices, :3] - origin if finger_indices else None
+    q = robot.data.joint_pos[0]
+    qvel = robot.data.joint_vel[0]
+    limits = getattr(robot.data, "soft_joint_pos_limits", None)
+    if limits is not None:
+        limits = limits[0] if limits.ndim == 3 else limits
+        lower_values = limits[:, 0]
+        upper_values = limits[:, 1]
+    else:
+        lower_values = upper_values = None
+    return {
+        "body_names": body_names,
+        "ee_body_name": "gripper_base",
+        "ee_position_local_m": ee_pos.detach().cpu().tolist(),
+        "ee_quaternion_wxyz": ee_quat.detach().cpu().tolist(),
+        "finger_body_names": [body_names[idx] for idx in finger_indices],
+        "finger_positions_local_m": None if finger_positions is None else finger_positions.detach().cpu().tolist(),
+        "finger_center_local_m": None if finger_positions is None else finger_positions.mean(dim=0).detach().cpu().tolist(),
+        "joint_position_absolute": q.detach().cpu().tolist(),
+        "joint_velocity": qvel.detach().cpu().tolist(),
+        "joint_position_lower": None if lower_values is None else lower_values.detach().cpu().tolist(),
+        "joint_position_upper": None if upper_values is None else upper_values.detach().cpu().tolist(),
+    }
+
+
 def inside_basket(position: list[float]) -> bool:
     return (
         abs(position[0] - BASKET_SUCCESS_CENTER[0]) <= BASKET_SUCCESS_HALF_X
@@ -100,6 +141,7 @@ def run() -> None:
     cfg.scene.num_envs = 1
     cfg.sim.device = args.device
     solution = AlgSolution()
+    policy_mode = os.environ.get("ATEC_TASK_E_POLICY_MODE", "act").strip().lower()
     if args.temporal_agg is not None:
         solution.temporal_agg = bool(args.temporal_agg)
         solution.reset()
@@ -116,9 +158,9 @@ def run() -> None:
         },
         "evaluation_code": {"path": str(Path(__file__).resolve()), "sha256": sha256(Path(__file__))},
         "solution_code": {
-            "path": str(ROOT / ("demo/solution_rgb.py" if os.environ.get("ATEC_TASK_E_POLICY_MODE", "act").strip().lower() == "rgb" else "demo/solution_act.py")),
-            "sha256": sha256(ROOT / ("demo/solution_rgb.py" if os.environ.get("ATEC_TASK_E_POLICY_MODE", "act").strip().lower() == "rgb" else "demo/solution_act.py")),
-            "mode": os.environ.get("ATEC_TASK_E_POLICY_MODE", "act").strip().lower(),
+            "path": str(ROOT / ("demo/solution_rgb.py" if policy_mode == "rgb" else "demo/solution_act.py")),
+            "sha256": sha256(ROOT / ("demo/solution_rgb.py" if policy_mode == "rgb" else "demo/solution_act.py")),
+            "mode": policy_mode,
         },
         "environment_code": {
             "path": str(ROOT / "source/atec_rl_lab/atec_rl_lab/tasks/task_e/env_cfg.py"),
@@ -142,6 +184,25 @@ def run() -> None:
         "cuda_version": torch.version.cuda,
         "gpu": torch.cuda.get_device_name(0),
     }
+    if policy_mode == "rgb":
+        calibration_path = Path(os.environ.get(
+            "ATEC_TASK_E_RGB_CALIBRATION",
+            "/root/gpufree-data/rgb_runs/task_e_calibration.json",
+        )).resolve()
+        templates_path = Path(os.environ.get(
+            "ATEC_TASK_E_RGB_TEMPLATES",
+            "/root/gpufree-data/rgb_runs/expert_templates.json",
+        )).resolve()
+        manifest["rgb_assets"] = {
+            "calibration": {
+                "path": str(calibration_path),
+                "sha256": sha256(calibration_path) if calibration_path.is_file() else None,
+            },
+            "expert_templates": {
+                "path": str(templates_path),
+                "sha256": sha256(templates_path) if templates_path.is_file() else None,
+            },
+        }
     save_json(output_dir / "manifest.json", manifest)
 
     env = None
@@ -222,6 +283,7 @@ def run() -> None:
                     "action": action[0].detach().cpu().tolist(),
                     "joint_position": None if done else qpos,
                     "joint_velocity": None if done else qvel,
+                    "robot_diagnostics": None if done else robot_diagnostics(env),
                     "object_positions_local_m": None if done else final_positions,
                     "objects_in_basket": None if done else in_basket,
                     "basket_count": None if done else basket_count,

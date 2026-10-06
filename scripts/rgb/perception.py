@@ -53,6 +53,27 @@ def _components(mask: np.ndarray, min_area: float = 120.0) -> list[dict]:
     return output
 
 
+def _sugar_full_component(image: np.ndarray) -> dict | None:
+    """Find the complete pale sugar-box footprint, including its white side.
+
+    The yellow label is only a small top strip and its centroid is displaced
+    from the collision/root center.  A low-saturation, bright connected
+    component in the table ROI captures the full rectangular asset instead.
+    """
+    hsv = cv2.cvtColor(np.asarray(image)[..., :3].astype(np.uint8), cv2.COLOR_RGB2HSV)
+    mask = ((hsv[..., 1] <= 105) & (hsv[..., 2] >= 80)).astype(np.uint8) * 255
+    mask[:190] = 0
+    mask[320:] = 0
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+    candidates = []
+    for component in _components(mask, min_area=1000.0):
+        x, y, w, h = component["bbox"]
+        if x < 270 and w >= 55 and h >= 25 and w <= 135 and h <= 80:
+            candidates.append(component)
+    return max(candidates, key=lambda item: item["area"], default=None)
+
+
 def _merge_nearby_vertical(parts: list[dict], x_min: float = 205.0, x_max: float = 270.0) -> dict | None:
     """Merge highlight fragments belonging to the upright mustard bottle."""
     selected = [c for c in parts if x_min <= c["xy"][0] <= x_max and c["area"] >= 100.0]
@@ -142,7 +163,7 @@ def detect_pixels(rgb: np.ndarray) -> dict[str, dict]:
     banana_right = [c for c in banana_sat if c["xy"][0] >= 260.0]
 
     components = {
-        "object_1": best(sugar_left) or best(sugar),
+        "object_1": _sugar_full_component(image) or best(sugar_left) or best(sugar),
         "object_2": sat_mustard or best(tall),
         "object_3": best(banana_right) or sat_banana or best(banana),
     }
@@ -178,6 +199,12 @@ class RGBPerception:
         if matrix.shape != (3, 3) or not np.isfinite(matrix).all():
             raise ValueError("Calibration pixel_to_world_xy must be a finite 3x3 matrix")
         self.pixel_to_world = matrix
+        raw_object_matrices = payload.get("object_pixel_to_world_xy", {})
+        self.object_pixel_to_world = {}
+        for name, value in raw_object_matrices.items():
+            object_matrix = np.asarray(value, dtype=np.float64)
+            if object_matrix.shape == (3, 3) and np.isfinite(object_matrix).all():
+                self.object_pixel_to_world[str(name)] = object_matrix
         raw_offsets = payload.get("object_world_offsets_m", {})
         self.object_world_offsets = {
             str(name): np.asarray(value, dtype=np.float64)
@@ -188,9 +215,10 @@ class RGBPerception:
         self.smoothing = float(smoothing)
         self._last: dict[str, tuple[np.ndarray, int, dict]] = {}
 
-    def image_to_world(self, pixel_xy: list[float] | np.ndarray) -> np.ndarray:
+    def image_to_world(self, pixel_xy: list[float] | np.ndarray, object_name: str | None = None) -> np.ndarray:
         p = np.asarray([float(pixel_xy[0]), float(pixel_xy[1]), 1.0], dtype=np.float64)
-        out = self.pixel_to_world @ p
+        matrix = self.object_pixel_to_world.get(object_name, self.pixel_to_world)
+        out = matrix @ p
         return out[:2] / max(float(out[2]), 1e-9)
 
     def reset(self) -> None:
@@ -225,7 +253,12 @@ class RGBPerception:
 
     def _make_detection(self, name: str, component: Mapping, confidence: float) -> Detection:
         pixel = [float(x) for x in component["xy"]]
-        world = self.image_to_world(pixel) + self.object_world_offsets.get(name, np.zeros(2, dtype=np.float64))
+        # New calibration files contain an object-specific mapping fitted to
+        # the visible footprint of each asset.  The legacy global mapping and
+        # offsets remain a fallback for older calibration artifacts.
+        world = self.image_to_world(pixel, name)
+        if name not in self.object_pixel_to_world:
+            world = world + self.object_world_offsets.get(name, np.zeros(2, dtype=np.float64))
         return Detection(
             object_id=name,
             visible=True,

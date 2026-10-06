@@ -11,7 +11,7 @@ import cv2
 import h5py
 import numpy as np
 
-from perception import _components
+from perception import _components, _sugar_full_component
 
 
 def sha256(path: Path) -> str:
@@ -47,35 +47,36 @@ def _separated_components(rgb: np.ndarray) -> dict[str, dict] | None:
     if not sugar or not mustard or not banana:
         return None
     return {
-        "object_1": max(sugar, key=lambda c: c["area"]),
+        "object_1": _sugar_full_component(rgb) or max(sugar, key=lambda c: c["area"]),
         "object_2": max(mustard, key=lambda c: c["area"]),
         "object_3": max(banana, key=lambda c: c["area"]),
     }
 
 
-def collect_correspondences(dataset: Path, max_trajectories: int | None) -> tuple[np.ndarray, np.ndarray, list[str], int]:
+def collect_correspondences(datasets: list[Path], max_trajectories: int | None) -> tuple[np.ndarray, np.ndarray, list[str], int]:
     pixels: list[list[float]] = []
     worlds: list[list[float]] = []
     labels: list[str] = []
     rejected = 0
-    with h5py.File(dataset, "r") as h5:
-        keys = sorted(h5.keys(), key=lambda key: int(key.split("_")[1]))
-        if max_trajectories is not None:
-            keys = keys[:max_trajectories]
-        for key in keys:
-            group = h5[key]
-            initial = decode(group.attrs["initial_object_positions_local_m"])
-            components = _separated_components(group["images/rgb"][0])
-            if components is None:
-                rejected += 1
-                continue
-            for object_name in ("object_1", "object_2", "object_3"):
-                component = components.get(object_name)
-                if component is None:
+    for dataset in datasets:
+        with h5py.File(dataset, "r") as h5:
+            keys = sorted(h5.keys(), key=lambda key: int(key.split("_")[1]))
+            if max_trajectories is not None:
+                keys = keys[:max_trajectories]
+            for key in keys:
+                group = h5[key]
+                initial = decode(group.attrs["initial_object_positions_local_m"])
+                components = _separated_components(group["images/rgb"][0])
+                if components is None:
+                    rejected += 1
                     continue
-                pixels.append(component["xy"])
-                worlds.append(initial[object_name][:2])
-                labels.append(object_name)
+                for object_name in ("object_1", "object_2", "object_3"):
+                    component = components.get(object_name)
+                    if component is None:
+                        continue
+                    pixels.append(component["xy"])
+                    worlds.append(initial[object_name][:2])
+                    labels.append(object_name)
     if len(pixels) < 4:
         raise RuntimeError(f"Only {len(pixels)} RGB/GT correspondences found; need at least 4")
     return np.asarray(pixels, dtype=np.float32), np.asarray(worlds, dtype=np.float32), labels, rejected
@@ -83,12 +84,16 @@ def collect_correspondences(dataset: Path, max_trajectories: int | None) -> tupl
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dataset", type=Path, default=Path("/root/gpufree-data/atec_task_e_compact_20/trajectory.hdf5"))
+    parser.add_argument(
+        "--dataset", type=Path, action="append", dest="datasets",
+        help="Demonstration HDF5 (repeat to combine independent calibration sets)",
+    )
     parser.add_argument("--output", type=Path, default=Path("/root/gpufree-data/rgb_runs/task_e_calibration.json"))
     parser.add_argument("--max-trajectories", type=int, default=None)
     args = parser.parse_args()
 
-    pixel, world, labels, rejected = collect_correspondences(args.dataset, args.max_trajectories)
+    datasets = args.datasets or [Path("/root/gpufree-data/atec_task_e_compact_20/trajectory.hdf5")]
+    pixel, world, labels, rejected = collect_correspondences(datasets, args.max_trajectories)
     # The visible table region is narrow and nearly fronto-parallel.  Fitting
     # a full projective model from only a dozen object centroids is ill
     # conditioned (the denominator can approach zero at valid pixels), while
@@ -104,20 +109,46 @@ def main() -> None:
     predicted = cv2.perspectiveTransform(pixel.reshape(-1, 1, 2), matrix).reshape(-1, 2)
     errors = np.linalg.norm(predicted - world, axis=1)
     object_offsets = {}
+    object_matrices = {}
+    object_fit_errors = {}
     for object_name in ("object_1", "object_2", "object_3"):
         indices = [i for i, label in enumerate(labels) if label == object_name]
         residual = world[indices] - predicted[indices] if indices else np.zeros((0, 2), dtype=np.float32)
         object_offsets[object_name] = residual.mean(axis=0).tolist() if len(residual) else [0.0, 0.0]
+        if len(indices) >= 3:
+            object_affine, object_mask = cv2.estimateAffine2D(
+                pixel[indices], world[indices], method=cv2.RANSAC,
+                ransacReprojThreshold=0.03, maxIters=5000, confidence=0.999,
+            )
+            if object_affine is None:
+                object_affine = cv2.getAffineTransform(
+                    pixel[indices[:3]].astype(np.float32),
+                    world[indices[:3]].astype(np.float32),
+                )
+            object_matrix = np.eye(3, dtype=np.float64)
+            object_matrix[:2, :] = object_affine
+            object_matrices[object_name] = object_matrix.tolist()
+            object_predicted = cv2.perspectiveTransform(
+                pixel[indices].reshape(-1, 1, 2), object_matrix
+            ).reshape(-1, 2)
+            object_fit_errors[object_name] = {
+                "samples": len(indices),
+                "inliers": int(object_mask.sum()) if object_mask is not None else None,
+                "mean_m": float(np.linalg.norm(object_predicted - world[indices], axis=1).mean()),
+                "p95_m": float(np.percentile(np.linalg.norm(object_predicted - world[indices], axis=1), 95)),
+            }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "version": 1,
-        "dataset": str(args.dataset.resolve()),
-        "dataset_sha256": sha256(args.dataset),
+        "datasets": [str(dataset.resolve()) for dataset in datasets],
+        "dataset_sha256": {str(dataset.resolve()): sha256(dataset) for dataset in datasets},
         "correspondences": int(len(pixel)),
         "inliers": int(mask.sum()) if mask is not None else 0,
         "rejected_merged_frames": int(rejected),
         "pixel_to_world_xy": matrix.tolist(),
+        "object_pixel_to_world_xy": object_matrices,
         "object_world_offsets_m": object_offsets,
+        "object_fit_error_m": object_fit_errors,
         "fit_error_m": {
             "mean": float(errors.mean()),
             "p95": float(np.percentile(errors, 95)),
